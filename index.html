@@ -318,6 +318,39 @@ h1 {
   .time-readout { font-size: 36px; }
 }
 
+/* ---------- Motivation image (in log modal) ---------- */
+.motivation-img {
+  width: 100%;
+  max-height: 220px;
+  object-fit: cover;
+  border-radius: 14px;
+  margin-bottom: 16px;
+}
+
+/* ---------- Motivation photo manager (Settings) ---------- */
+.photo-section { margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--line); }
+.photo-section h3 { margin: 0 0 6px; font-size: 15px; }
+#photoUpload { margin: 12px 0; font-size: 13px; }
+.photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+.photo-thumb { position: relative; border-radius: 10px; overflow: hidden; aspect-ratio: 1; }
+.photo-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.photo-thumb button {
+  position: absolute; top: 4px; right: 4px;
+  width: 20px; height: 20px; border-radius: 50%;
+  border: none; background: rgba(43,51,47,0.7); color: white;
+  font-size: 12px; line-height: 1; cursor: pointer;
+}
+.photo-empty { font-size: 13px; color: var(--ink-muted); font-style: italic; }
+.photo-local-badge {
+  position: absolute; bottom: 4px; left: 4px; font-size: 10px; padding: 2px 6px;
+  border-radius: 6px; background: rgba(43, 51, 47, 0.7); color: white;
+}
+
 </style>
 </head>
 <body>
@@ -402,6 +435,7 @@ h1 {
     <!-- LOG MODAL -->
     <div class="modal-backdrop is-hidden" id="logModal">
       <div class="modal">
+        <img id="motivationImg" class="motivation-img is-hidden" alt="" />
         <h2>Time's gathered.</h2>
         <p class="modal-sub">What did that stretch go toward? No judgment either way.</p>
         <textarea id="logNote" placeholder="e.g. drafted the intro section, or honestly mostly stared at it"></textarea>
@@ -457,6 +491,19 @@ h1 {
           <h3>First time setting this up?</h3>
           <p>See <code>README.md</code> in the project for the 5-minute, free, one-time Firebase setup. Until then, Tide works fully offline on this device — nothing is lost.</p>
         </div>
+
+        <div class="photo-section">
+          <h3>Motivation photos</h3>
+          <p class="fine-print">
+            Add your own images or gifs — after each timer session, one shows up at random to cheer
+            you on. They're saved in this browser and, when you're signed in above, synced to your
+            own private Firebase project (never part of the site's code, never visible to anyone
+            else). Photos are compressed on upload to fit comfortably within Firebase's free tier;
+            a photo too large to sync stays on this device and is marked "Local only".
+          </p>
+          <input type="file" id="photoUpload" accept="image/*" multiple />
+          <div class="photo-grid" id="photoGrid"></div>
+        </div>
       </div>
     </section>
 
@@ -469,12 +516,12 @@ h1 {
 // Leave as-is and the app runs fully offline on local storage. See the setup guide
 // further down this file / in the Sync tab for step-by-step instructions.
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID",
+  apiKey: "AIzaSyB3RuWhDSrT3IFZg7-HyRvQjeX2lref_3I",
+  authDomain: "time-tide-4f271.firebaseapp.com",
+  projectId: "time-tide-4f271",
+  storageBucket: "time-tide-4f271.firebasestorage.app",
+  messagingSenderId: "709189161210",
+  appId: "1:709189161210:web:71abaf7febc9cbc8717943",
 };
 const isConfigured = firebaseConfig.apiKey !== "YOUR_API_KEY";
 // storage.js — local-first data layer.
@@ -484,6 +531,7 @@ const isConfigured = firebaseConfig.apiKey !== "YOUR_API_KEY";
 const KEYS = {
   sessions: "tide.sessions",
   todos: "tide.todos",
+  photos: "tide.photos",
 };
 
 function uid() {
@@ -504,6 +552,37 @@ function writeAll(key, arr) {
 }
 
 const Store = {
+  // ---- Motivation photos ----
+  // Synced via Firebase like sessions/todos when signed in (see sync.js below).
+  // Images are downscaled/compressed on upload to fit Firestore's 1 MiB-per-document
+  // limit; if a photo still can't fit after compression it stays local-only and
+  // the person is told so, rather than silently failing to sync.
+  getPhotos() {
+    return readAll(KEYS.photos);
+  },
+  addPhoto(dataUrl, extra = {}) {
+    const photos = readAll(KEYS.photos);
+    const record = { id: uid(), dataUrl, updatedAt: Date.now(), ...extra };
+    photos.push(record);
+    writeAll(KEYS.photos, photos);
+    document.dispatchEvent(new CustomEvent("tide:photos-changed"));
+    return record;
+  },
+  deletePhoto(id) {
+    const photos = readAll(KEYS.photos).filter((p) => p.id !== id);
+    writeAll(KEYS.photos, photos);
+    document.dispatchEvent(new CustomEvent("tide:photos-changed", { detail: { deletedId: id } }));
+  },
+  replaceAllPhotos(photos) {
+    writeAll(KEYS.photos, photos);
+    document.dispatchEvent(new CustomEvent("tide:photos-changed"));
+  },
+  randomPhoto() {
+    const photos = readAll(KEYS.photos);
+    if (!photos.length) return null;
+    return photos[Math.floor(Math.random() * photos.length)];
+  },
+
   // ---- Sessions ----
   getSessions() {
     return readAll(KEYS.sessions);
@@ -710,6 +789,7 @@ let db = null;
 let currentUser = null;
 let unsubscribeSessions = null;
 let unsubscribeTodos = null;
+let unsubscribePhotos = null;
 
 const Sync = {
   isConfigured,
@@ -743,6 +823,7 @@ const Sync = {
           onStatusChange({ state: "offline-only" });
           if (unsubscribeSessions) unsubscribeSessions();
           if (unsubscribeTodos) unsubscribeTodos();
+          if (unsubscribePhotos) unsubscribePhotos();
         }
       });
     } catch (err) {
@@ -768,6 +849,7 @@ const Sync = {
 
     await this._mergeCollection(fsMod, "sessions", uidPath, Store.getSessions, Store.replaceAll);
     await this._mergeCollection(fsMod, "todos", uidPath, Store.getTodos, Store.replaceAllTodos);
+    await this._mergeCollection(fsMod, "photos", uidPath, Store.getPhotos, Store.replaceAllPhotos);
 
     // Live listeners: keep local storage in sync with remote changes from other devices.
     const sessionsRef = fsMod.collection(db, "users", uidPath, "sessions");
@@ -782,11 +864,23 @@ const Sync = {
       Store.replaceAllTodos(mergeByUpdatedAt(Store.getTodos(), remote));
     });
 
+    const photosRef = fsMod.collection(db, "users", uidPath, "photos");
+    unsubscribePhotos = fsMod.onSnapshot(photosRef, (snap) => {
+      const remote = snap.docs.map((d) => d.data());
+      Store.replaceAllPhotos(mergeByUpdatedAt(Store.getPhotos(), remote));
+    });
+
     // Push any local record up (covers first sign-in with existing local data).
     document.addEventListener("tide:sessions-changed", () => this._pushAll("sessions", Store.getSessions()));
     document.addEventListener("tide:todos-changed", () => this._pushAll("todos", Store.getTodos()));
+    document.addEventListener("tide:photos-changed", (e) => {
+      this._pushAll("photos", Store.getPhotos());
+      const deletedId = e.detail && e.detail.deletedId;
+      if (deletedId) this._deleteRemote("photos", deletedId);
+    });
     this._pushAll("sessions", Store.getSessions());
     this._pushAll("todos", Store.getTodos());
+    this._pushAll("photos", Store.getPhotos());
   },
 
   async _mergeCollection(fsMod, name, uidPath, getLocal, setLocal) {
@@ -800,9 +894,22 @@ const Sync = {
     if (!currentUser || !db) return;
     const fsMod = this._fsMod;
     for (const r of records) {
+      // Firestore caps documents at 1 MiB. Sessions/todos are tiny text, but photos
+      // are base64 images, so guard against oversized docs instead of a silent failure.
+      const approxBytes = new Blob([JSON.stringify(r)]).size;
+      if (approxBytes > 900_000) {
+        if (name === "photos") flagPhotoSyncSkipped(r.id);
+        continue;
+      }
       const ref = fsMod.doc(db, "users", currentUser.uid, name, r.id);
       fsMod.setDoc(ref, r, { merge: true }).catch(() => {});
     }
+  },
+
+  async _deleteRemote(name, id) {
+    if (!currentUser || !db) return;
+    const ref = this._fsMod.doc(db, "users", currentUser.uid, name, id);
+    this._fsMod.deleteDoc(ref).catch(() => {});
   },
 };
 
@@ -983,10 +1090,19 @@ setDuration(25);
 --------------------------------------------------------------- */
 const logModal = document.getElementById("logModal");
 const logNote = document.getElementById("logNote");
+const motivationImg = document.getElementById("motivationImg");
 let pendingSession = null;
 
 function openLogModal() {
   logNote.value = "";
+  const photo = Store.randomPhoto();
+  if (photo) {
+    motivationImg.src = photo.dataUrl;
+    motivationImg.classList.remove("is-hidden");
+  } else {
+    motivationImg.classList.add("is-hidden");
+    motivationImg.src = "";
+  }
   logModal.classList.remove("is-hidden");
   logNote.focus();
 }
@@ -1194,6 +1310,89 @@ function renderWeek() {
 
 function sumMinutes(list) { return list.reduce((sum, s) => sum + s.durationMin, 0); }
 function isoOf(d) { return d.toISOString().slice(0, 10); }
+
+/* ---------------------------------------------------------------
+   Motivation photos
+--------------------------------------------------------------- */
+const photoUpload = document.getElementById("photoUpload");
+const photoGrid = document.getElementById("photoGrid");
+const skippedSyncPhotoIds = new Set();
+
+function flagPhotoSyncSkipped(id) {
+  skippedSyncPhotoIds.add(id);
+  renderPhotoGrid();
+}
+
+// Downscale + re-encode as JPEG so a typical phone photo (3-5 MB) shrinks to well
+// under Firestore's 1 MiB document cap. GIFs are left untouched since redrawing to
+// canvas would flatten the animation to a single frame.
+function readAndPrepareImage(file) {
+  if (file.type === "image/gif") {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX_DIM = 1600;
+        const scale = Math.min(1, MAX_DIM / Math.max(img.width, img.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/jpeg", 0.72));
+      };
+      img.onerror = reject;
+      img.src = reader.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+photoUpload.addEventListener("change", () => {
+  const files = Array.from(photoUpload.files || []);
+  for (const file of files) {
+    readAndPrepareImage(file)
+      .then((dataUrl) => {
+        Store.addPhoto(dataUrl);
+        renderPhotoGrid();
+      })
+      .catch(() => {});
+  }
+  photoUpload.value = "";
+});
+
+function renderPhotoGrid() {
+  const photos = Store.getPhotos();
+  photoGrid.innerHTML = "";
+  if (!photos.length) {
+    photoGrid.innerHTML = `<div class="photo-empty">No photos added yet.</div>`;
+    return;
+  }
+  for (const p of photos) {
+    const div = document.createElement("div");
+    div.className = "photo-thumb";
+    const skippedBadge = skippedSyncPhotoIds.has(p.id)
+      ? `<span class="photo-local-badge" title="Too large to sync — stays on this device only">Local only</span>`
+      : "";
+    div.innerHTML = `<img src="${p.dataUrl}" alt="" />${skippedBadge}<button aria-label="Remove">×</button>`;
+    div.querySelector("button").addEventListener("click", () => {
+      Store.deletePhoto(p.id);
+      skippedSyncPhotoIds.delete(p.id);
+      renderPhotoGrid();
+    });
+    photoGrid.appendChild(div);
+  }
+}
+renderPhotoGrid();
 
 /* ---------------------------------------------------------------
    Sync / settings
