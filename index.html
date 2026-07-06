@@ -1430,10 +1430,30 @@ googleSignIn.addEventListener("click", async () => {
     try {
       await Sync.signIn();
     } catch (err) {
-      firebaseStatus.textContent = "Sign-in didn't go through. Double check firebase-config.js and that Google sign-in is enabled in your Firebase project.";
+      console.warn("Tide sign-in error:", err);
+      firebaseStatus.textContent = describeAuthError(err);
     }
   }
 });
+
+function describeAuthError(err) {
+  const code = err && err.code;
+  switch (code) {
+    case "auth/unauthorized-domain":
+      return "This site's domain isn't authorized in Firebase yet. In the Firebase console: Authentication → Settings → Authorized domains → add your github.io domain.";
+    case "auth/operation-not-allowed":
+      return "Google sign-in isn't enabled yet. In the Firebase console: Authentication → Sign-in method → enable Google.";
+    case "auth/popup-blocked":
+      return "Your browser blocked the sign-in popup. Allow popups for this site and try again.";
+    case "auth/popup-closed-by-user":
+    case "auth/cancelled-popup-request":
+      return "Sign-in was closed before finishing — try again and complete the Google prompt.";
+    case "auth/configuration-not-found":
+      return "Firebase Authentication isn't set up for this project yet — enable it in the Firebase console first.";
+    default:
+      return `Sign-in didn't go through${code ? ` (${code})` : ""}. Check the browser console for details.`;
+  }
+}
 
 /* ---------------------------------------------------------------
    Initial render
