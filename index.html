@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lamp — a gentle pomodoro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #1F1B2E;
+    --surface: #2A2440;
+    --surface-hi: #342C50;
+    --text: #F0EAE2;
+    --muted: #9C93B5;
+    --amber: #E8A84C;
+    --amber-dim: #8A6A3A;
+    --sage: #7FA98A;
+    --ring-track: #3A3358;
+  }
+  *{ box-sizing: border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background: radial-gradient(ellipse 900px 600px at 50% -10%, #2A2148 0%, var(--bg) 55%);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap{ max-width: 720px; margin: 0 auto; padding: 32px 20px 80px; }
+
+  header.top{ text-align:center; margin-bottom: 28px; }
+  header.top .brand{
+    font-family:'Fraunces', serif;
+    font-optical-sizing: auto;
+    font-weight: 500;
+    font-size: 30px;
+    letter-spacing: 0.3px;
+    display:flex; align-items:center; justify-content:center; gap:10px;
+  }
+  header.top .brand svg{ width:26px; height:26px; }
+  header.top .tag{ color: var(--muted); font-size: 14px; margin-top: 4px; }
+
+  nav.tabs{
+    display:flex; justify-content:center; gap: 6px; margin: 26px 0 30px;
+    background: var(--surface); padding: 5px; border-radius: 14px; width: fit-content; margin-left:auto; margin-right:auto;
+  }
+  nav.tabs button{
+    font-family:'Inter'; font-size: 14px; font-weight:500;
+    background: transparent; border:none; color: var(--muted);
+    padding: 9px 18px; border-radius: 10px; cursor:pointer;
+    transition: background .2s, color .2s;
+  }
+  nav.tabs button.active{ background: var(--surface-hi); color: var(--text); }
+  nav.tabs button:hover:not(.active){ color: var(--text); }
+
+  .view{ display:none; }
+  .view.active{ display:block; animation: fade .25s ease; }
+  @keyframes fade{ from{opacity:0; transform: translateY(4px);} to{opacity:1; transform:none;} }
+
+  .card{
+    background: var(--surface);
+    border-radius: 18px;
+    padding: 24px;
+    margin-bottom: 18px;
+    border: 1px solid rgba(255,255,255,0.04);
+  }
+
+  /* ---- Timer ---- */
+  .timer-face{ display:flex; flex-direction:column; align-items:center; padding: 12px 0 6px; }
+  .ring-wrap{ position:relative; width: 240px; height:240px; }
+  .ring-wrap svg{ transform: rotate(-90deg); width:100%; height:100%; }
+  .ring-track{ fill:none; stroke: var(--ring-track); stroke-width: 10; }
+  .ring-progress{ fill:none; stroke: var(--amber); stroke-width: 10; stroke-linecap: round;
+    transition: stroke-dashoffset 1s linear; filter: drop-shadow(0 0 8px rgba(232,168,76,0.45)); }
+  .ring-center{
+    position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  }
+  .ring-center .time{ font-family:'IBM Plex Mono', monospace; font-size: 40px; letter-spacing: 1px; }
+  .ring-center .label{ color: var(--muted); font-size: 12px; margin-top: 4px; }
+
+  .durations{ display:flex; gap:8px; margin: 20px 0 4px; flex-wrap:wrap; justify-content:center; }
+  .durations button{
+    background: var(--surface-hi); border: 1px solid transparent; color: var(--text);
+    padding: 8px 14px; border-radius: 999px; font-size: 13px; cursor:pointer; font-family:'Inter';
+  }
+  .durations button.selected{ border-color: var(--amber); color: var(--amber); }
+
+  .controls{ display:flex; gap:10px; margin-top: 18px; }
+  .btn{
+    font-family:'Inter'; font-weight:600; font-size:14px; border:none; border-radius: 12px;
+    padding: 12px 22px; cursor:pointer; transition: transform .1s, filter .15s;
+  }
+  .btn:active{ transform: scale(0.97); }
+  .btn-primary{ background: var(--amber); color: #241C0C; }
+  .btn-secondary{ background: var(--surface-hi); color: var(--text); }
+  .btn-ghost{ background: transparent; color: var(--muted); border: 1px solid var(--ring-track); }
+
+  .task-hint{ text-align:center; color: var(--muted); font-size: 13px; margin-top: 14px; max-width: 320px; }
+
+  /* Reflection box after timer ends */
+  .reflect{ margin-top: 8px; }
+  .reflect label{ display:block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .reflect input[type=text], .reflect textarea{
+    width:100%; background: var(--surface-hi); border:1px solid var(--ring-track); color: var(--text);
+    border-radius: 10px; padding: 10px 12px; font-family:'Inter'; font-size: 14px; resize: vertical;
+  }
+  .mood-row{ display:flex; gap:8px; flex-wrap:wrap; margin: 10px 0 16px; }
+  .mood-chip{
+    background: var(--surface-hi); border:1px solid transparent; color: var(--muted);
+    padding: 7px 12px; border-radius: 999px; font-size:12px; cursor:pointer;
+  }
+  .mood-chip.selected{ border-color: var(--sage); color: var(--sage); }
+
+  /* ---- Todos ---- */
+  .add-todo{ display:flex; gap:8px; margin-bottom: 18px; flex-wrap:wrap; }
+  .add-todo input[type=text]{
+    flex:1; min-width:180px; background: var(--surface-hi); border:1px solid var(--ring-track);
+    color: var(--text); border-radius: 10px; padding: 11px 14px; font-family:'Inter'; font-size:14px;
+  }
+  .add-todo select{
+    background: var(--surface-hi); border:1px solid var(--ring-track); color: var(--text);
+    border-radius: 10px; padding: 11px; font-family:'Inter'; font-size:13px;
+  }
+  .todo-item{
+    display:flex; align-items:flex-start; justify-content:space-between; gap:10px;
+    padding: 14px 4px; border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .todo-item:last-child{ border-bottom:none; }
+  .todo-main{ display:flex; gap:10px; align-items:flex-start; }
+  .todo-check{
+    width:20px; height:20px; border-radius:6px; border:1.5px solid var(--muted); flex-shrink:0; margin-top:2px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; font-size:12px;
+  }
+  .todo-check.done{ background: var(--sage); border-color: var(--sage); color:#1a2b20; }
+  .todo-text{ font-size: 14.5px; }
+  .todo-text.done{ text-decoration: line-through; color: var(--muted); }
+  .todo-meta{ font-size:12px; color: var(--muted); margin-top:2px; }
+  .todo-actions{ display:flex; gap:6px; flex-shrink:0; }
+  .icon-btn{
+    background: var(--surface-hi); border:none; color: var(--muted); width:30px; height:30px; border-radius:8px;
+    cursor:pointer; font-size:13px; display:flex; align-items:center; justify-content:center;
+  }
+  .icon-btn:hover{ color: var(--text); }
+
+  .suggestion-box{
+    background: var(--surface-hi); border-left: 3px solid var(--amber); border-radius: 10px;
+    padding: 12px 14px; margin-top: 10px; font-size: 13px; color: var(--text); line-height:1.5;
+  }
+  .suggestion-box .small{ color: var(--muted); font-size:12px; margin-top:4px; display:block; }
+
+  .empty-note{ color: var(--muted); font-size: 14px; text-align:center; padding: 20px 10px; }
+
+  /* ---- Week review ---- */
+  .week-grid{ display:flex; flex-direction:column; gap: 10px; }
+  .day-row{
+    background: var(--surface-hi); border-radius: 12px; padding: 14px 16px;
+  }
+  .day-row .day-head{ display:flex; justify-content:space-between; align-items:baseline; }
+  .day-row .day-name{ font-family:'Fraunces'; font-size: 16px; }
+  .day-row .day-total{ color: var(--amber); font-size: 13px; font-family:'IBM Plex Mono'; }
+  .day-bar-track{ height:6px; background: var(--ring-track); border-radius:99px; margin: 8px 0 10px; overflow:hidden; }
+  .day-bar-fill{ height:100%; background: var(--amber); border-radius:99px; }
+  .entry-row{ font-size:13px; color: var(--muted); padding: 3px 0; display:flex; justify-content:space-between; gap:8px; }
+  .entry-row .entry-task{ color: var(--text); }
+
+  .insight-card{
+    background: linear-gradient(135deg, rgba(232,168,76,0.12), rgba(127,169,138,0.08));
+    border: 1px solid rgba(232,168,76,0.2);
+  }
+  .insight-card h3{ font-family:'Fraunces'; font-weight:500; margin: 0 0 8px; font-size:16px; }
+  .insight-card p{ margin:0; color: var(--muted); font-size:13.5px; line-height:1.55; }
+
+  h2.section-title{
+    font-family:'Fraunces'; font-weight:500; font-size:19px; margin: 0 0 14px;
+  }
+
+  .footnote{ text-align:center; color: var(--muted); font-size: 11.5px; margin-top: 30px; line-height:1.6; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="brand">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 2C9 2 7 4.5 7 7.5C7 10 8.5 11.5 9.5 13H14.5C15.5 11.5 17 10 17 7.5C17 4.5 15 2 12 2Z" stroke="#E8A84C" stroke-width="1.4"/><path d="M9 16H15M10 19H14" stroke="#E8A84C" stroke-width="1.4" stroke-linecap="round"/></svg>
+      Lamp
+    </div>
+    <div class="tag">A quiet place to work a little, then write it down.</div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab-btn active" data-view="timer">Timer</button>
+    <button class="tab-btn" data-view="todos">To-dos</button>
+    <button class="tab-btn" data-view="review">This week</button>
+  </nav>
+
+  <!-- TIMER VIEW -->
+  <section class="view active" id="view-timer">
+    <div class="card timer-face">
+      <div class="ring-wrap">
+        <svg viewBox="0 0 240 240">
+          <circle class="ring-track" cx="120" cy="120" r="104"></circle>
+          <circle class="ring-progress" id="ringProgress" cx="120" cy="120" r="104"
+            stroke-dasharray="653.45" stroke-dashoffset="0"></circle>
+        </svg>
+        <div class="ring-center">
+          <div class="time" id="timeDisplay">25:00</div>
+          <div class="label" id="timerStateLabel">ready when you are</div>
+        </div>
+      </div>
+
+      <div class="durations" id="durationRow">
+        <button data-min="15">15 min</button>
+        <button data-min="25" class="selected">25 min</button>
+        <button data-min="50">50 min</button>
+        <button data-min="90">90 min</button>
+      </div>
+
+      <div class="controls">
+        <button class="btn btn-primary" id="startBtn">Start</button>
+        <button class="btn btn-secondary" id="pauseBtn" style="display:none;">Pause</button>
+        <button class="btn btn-ghost" id="resetBtn">Reset</button>
+      </div>
+
+      <div class="task-hint">No pressure to pick a task first — just start, and tell me what happened after.</div>
+    </div>
+
+    <div class="card" id="reflectCard" style="display:none;">
+      <h2 class="section-title">What did you drift into?</h2>
+      <div class="reflect">
+        <label>In a few words, what did that time go toward?</label>
+        <input type="text" id="reflectTask" placeholder="e.g. cleaned inbox, half-wrote the report, mostly stared at the wall">
+        <label style="margin-top:12px;">If it helps — what pulled at your attention?</label>
+        <div class="mood-row" id="moodRow">
+          <div class="mood-chip" data-mood="Focused">Actually focused</div>
+          <div class="mood-chip" data-mood="Low energy">Low energy</div>
+          <div class="mood-chip" data-mood="Distracted">Got distracted</div>
+          <div class="mood-chip" data-mood="Unclear task">Task felt unclear</div>
+          <div class="mood-chip" data-mood="Overwhelmed">Felt overwhelming</div>
+        </div>
+        <button class="btn btn-primary" id="saveReflectBtn">Save this slot</button>
+        <button class="btn btn-ghost" id="skipReflectBtn" style="margin-left:8px;">Skip, just move on</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- TODOS VIEW -->
+  <section class="view" id="view-todos">
+    <div class="card">
+      <h2 class="section-title">Things on your mind</h2>
+      <div class="add-todo">
+        <input type="text" id="newTodoText" placeholder="Add something you're avoiding, gently...">
+        <select id="newTodoEst">
+          <option value="15">~15 min</option>
+          <option value="25" selected>~25 min</option>
+          <option value="50">~50 min</option>
+          <option value="90">~90 min</option>
+        </select>
+        <button class="btn btn-primary" id="addTodoBtn">Add</button>
+      </div>
+      <div id="todoList"></div>
+      <div class="empty-note" id="todoEmptyNote" style="display:none;">Nothing on the list right now. That's fine too.</div>
+    </div>
+  </section>
+
+  <!-- REVIEW VIEW -->
+  <section class="view" id="view-review">
+    <div class="card insight-card" id="insightCard">
+      <h3>How this week looked</h3>
+      <p id="insightText">Log a few timer sessions and I'll start noticing patterns here — no judgment, just observations.</p>
+    </div>
+    <div class="card">
+      <h2 class="section-title">Day by day</h2>
+      <div class="week-grid" id="weekGrid"></div>
+    </div>
+  </section>
+
+  <div class="footnote">
+    Everything is stored only in this browser (no account, no server, no tracking).<br>
+    Suggestions are based purely on your own logged patterns — not a general AI model.
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- storage helpers (localStorage — works once hosted; may not persist in a sandboxed preview) ---------- */
+  function load(key, fallback){
+    try{ const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
+    catch(e){ return fallback; }
+  }
+  function save(key, val){
+    try{ localStorage.setItem(key, JSON.stringify(val)); }catch(e){}
+  }
+
+  let sessions = load('lamp_sessions', []);   // {id,date,weekday,startHour,durationMin,task,mood}
+  let todos    = load('lamp_todos', []);      // {id,text,estMin,done,createdAt}
+
+  /* ---------- tabs ---------- */
+  document.querySelectorAll('.tab-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+      document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('view-'+btn.dataset.view).classList.add('active');
+      if(btn.dataset.view === 'todos') renderTodos();
+      if(btn.dataset.view === 'review') renderReview();
+    });
+  });
+
+  /* ---------- timer ---------- */
+  const RADIUS = 104;
+  const CIRC = 2 * Math.PI * RADIUS;
+  const ringProgress = document.getElementById('ringProgress');
+  ringProgress.setAttribute('stroke-dasharray', CIRC.toFixed(2));
+
+  let selectedMin = 25;
+  let totalSeconds = selectedMin * 60;
+  let remaining = totalSeconds;
+  let intervalId = null;
+  let running = false;
+  let pendingSessionStart = null;
+
+  const timeDisplay = document.getElementById('timeDisplay');
+  const timerStateLabel = document.getElementById('timerStateLabel');
+  const startBtn = document.getElementById('startBtn');
+  const pauseBtn = document.getElementById('pauseBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const reflectCard = document.getElementById('reflectCard');
+
+  document.querySelectorAll('#durationRow button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      if(running) return;
+      document.querySelectorAll('#durationRow button').forEach(b=>b.classList.remove('selected'));
+      btn.classList.add('selected');
+      selectedMin = parseInt(btn.dataset.min,10);
+      totalSeconds = selectedMin*60;
+      remaining = totalSeconds;
+      updateDisplay();
+    });
+  });
+
+  function fmt(s){
+    const m = Math.floor(s/60), sec = s%60;
+    return String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0');
+  }
+  function updateDisplay(){
+    timeDisplay.textContent = fmt(remaining);
+    const frac = remaining/totalSeconds;
+    ringProgress.setAttribute('stroke-dashoffset', (CIRC*(1-frac)).toFixed(2));
+  }
+  updateDisplay();
+
+  startBtn.addEventListener('click', ()=>{
+    if(running) return;
+    running = true;
+    if(!pendingSessionStart) pendingSessionStart = new Date();
+    startBtn.style.display='none';
+    pauseBtn.style.display='inline-block';
+    timerStateLabel.textContent = 'settling in...';
+    intervalId = setInterval(()=>{
+      remaining--;
+      updateDisplay();
+      if(remaining <= 0){
+        clearInterval(intervalId);
+        running = false;
+        timerStateLabel.textContent = 'time\'s up — nice';
+        pauseBtn.style.display='none';
+        startBtn.style.display='none';
+        openReflect();
+      }
+    }, 1000);
+  });
+
+  pauseBtn.addEventListener('click', ()=>{
+    running = false;
+    clearInterval(intervalId);
+    pauseBtn.style.display='none';
+    startBtn.style.display='inline-block';
+    startBtn.textContent = 'Resume';
+    timerStateLabel.textContent = 'paused, no rush';
+  });
+
+  resetBtn.addEventListener('click', ()=>{
+    running = false;
+    clearInterval(intervalId);
+    remaining = totalSeconds;
+    pendingSessionStart = null;
+    updateDisplay();
+    startBtn.style.display='inline-block';
+    startBtn.textContent = 'Start';
+    pauseBtn.style.display='none';
+    timerStateLabel.textContent = 'ready when you are';
+    reflectCard.style.display='none';
+  });
+
+  function openReflect(){
+    reflectCard.style.display='block';
+    reflectCard.scrollIntoView({behavior:'smooth', block:'center'});
+  }
+
+  let selectedMood = null;
+  document.getElementById('moodRow').addEventListener('click', (e)=>{
+    const chip = e.target.closest('.mood-chip');
+    if(!chip) return;
+    document.querySelectorAll('.mood-chip').forEach(c=>c.classList.remove('selected'));
+    chip.classList.add('selected');
+    selectedMood = chip.dataset.mood;
+  });
+
+  document.getElementById('saveReflectBtn').addEventListener('click', ()=>{
+    const task = document.getElementById('reflectTask').value.trim() || '(no note)';
+    const startDate = pendingSessionStart || new Date();
+    sessions.push({
+      id: Date.now(),
+      date: startDate.toISOString().slice(0,10),
+      weekday: startDate.getDay(),
+      startHour: startDate.getHours() + startDate.getMinutes()/60,
+      durationMin: selectedMin,
+      task: task,
+      mood: selectedMood
+    });
+    save('lamp_sessions', sessions);
+    finishReflect();
+  });
+  document.getElementById('skipReflectBtn').addEventListener('click', finishReflect);
+
+  function finishReflect(){
+    reflectCard.style.display='none';
+    document.getElementById('reflectTask').value='';
+    document.querySelectorAll('.mood-chip').forEach(c=>c.classList.remove('selected'));
+    selectedMood = null;
+    pendingSessionStart = null;
+    remaining = totalSeconds;
+    updateDisplay();
+    startBtn.textContent = 'Start';
+    startBtn.style.display='inline-block';
+    timerStateLabel.textContent = 'ready when you are';
+  }
+
+  /* ---------- todos ---------- */
+  const todoList = document.getElementById('todoList');
+  const todoEmptyNote = document.getElementById('todoEmptyNote');
+
+  document.getElementById('addTodoBtn').addEventListener('click', addTodo);
+  document.getElementById('newTodoText').addEventListener('keydown', (e)=>{ if(e.key==='Enter') addTodo(); });
+
+  function addTodo(){
+    const input = document.getElementById('newTodoText');
+    const text = input.value.trim();
+    if(!text) return;
+    const est = parseInt(document.getElementById('newTodoEst').value,10);
+    todos.push({id:Date.now(), text, estMin:est, done:false, createdAt:new Date().toISOString(), showSuggestion:false});
+    save('lamp_todos', todos);
+    input.value='';
+    renderTodos();
+  }
+
+  function renderTodos(){
+    todoList.innerHTML='';
+    todoEmptyNote.style.display = todos.length ? 'none' : 'block';
+    todos.slice().reverse().forEach(todo=>{
+      const row = document.createElement('div');
+      row.className='todo-item';
+      row.innerHTML = `
+        <div class="todo-main">
+          <div class="todo-check ${todo.done?'done':''}" data-id="${todo.id}">${todo.done?'✓':''}</div>
+          <div>
+            <div class="todo-text ${todo.done?'done':''}">${escapeHtml(todo.text)}</div>
+            <div class="todo-meta">~${todo.estMin} min</div>
+            ${todo.showSuggestion ? `<div class="suggestion-box">${suggestionHtml(todo.estMin)}</div>` : ''}
+          </div>
+        </div>
+        <div class="todo-actions">
+          <button class="icon-btn suggest-btn" data-id="${todo.id}" title="Suggest a time">✨</button>
+          <button class="icon-btn del-btn" data-id="${todo.id}" title="Remove">✕</button>
+        </div>
+      `;
+      todoList.appendChild(row);
+    });
+
+    todoList.querySelectorAll('.todo-check').forEach(el=>{
+      el.addEventListener('click', ()=>{
+        const id = Number(el.dataset.id);
+        const t = todos.find(t=>t.id===id);
+        t.done = !t.done;
+        save('lamp_todos', todos);
+        renderTodos();
+      });
+    });
+    todoList.querySelectorAll('.del-btn').forEach(el=>{
+      el.addEventListener('click', ()=>{
+        const id = Number(el.dataset.id);
+        todos = todos.filter(t=>t.id!==id);
+        save('lamp_todos', todos);
+        renderTodos();
+      });
+    });
+    todoList.querySelectorAll('.suggest-btn').forEach(el=>{
+      el.addEventListener('click', ()=>{
+        const id = Number(el.dataset.id);
+        const t = todos.find(t=>t.id===id);
+        t.showSuggestion = !t.showSuggestion;
+        renderTodos();
+      });
+    });
+  }
+
+  function escapeHtml(s){
+    return s.replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  /* ---------- heuristic suggestion engine ---------- */
+  const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const BLOCKS = [
+    {label:'early morning (6–9am)', start:6, end:9},
+    {label:'mid-morning (9am–12pm)', start:9, end:12},
+    {label:'early afternoon (12–3pm)', start:12, end:15},
+    {label:'late afternoon (3–6pm)', start:15, end:18},
+    {label:'evening (6–9pm)', start:18, end:21},
+    {label:'night (9pm–12am)', start:21, end:24},
+  ];
+
+  function suggestionHtml(estMin){
+    const goodSessions = sessions.filter(s => s.mood === 'Focused' || !s.mood);
+    if(sessions.length < 3){
+      return `Not enough history yet to personalize this. A common pattern for most people: <strong>mid-morning</strong> or <strong>early evening</strong> tend to have the fewest distractions. Log a few real sessions (even distracted ones count) and this will start speaking from your own data.
+      <span class="small">Based on: general default (0 of your sessions used)</span>`;
+    }
+
+    // score buckets by (weekday, block) using count + bonus for "Focused" mood, penalty for "Distracted"/"Overwhelmed"
+    const scores = {};
+    sessions.forEach(s=>{
+      const block = BLOCKS.find(b => s.startHour >= b.start && s.startHour < b.end);
+      if(!block) return;
+      const key = s.weekday+'|'+block.label;
+      if(!scores[key]) scores[key] = {weekday:s.weekday, block:block.label, score:0, count:0};
+      let w = 1;
+      if(s.mood === 'Focused') w = 2;
+      if(s.mood === 'Distracted' || s.mood === 'Overwhelmed' || s.mood==='Low energy') w = -0.5;
+      scores[key].score += w;
+      scores[key].count += 1;
+    });
+
+    const ranked = Object.values(scores).sort((a,b)=> b.score - a.score);
+    const top = ranked.filter(r=>r.score > 0).slice(0,2);
+
+    if(top.length === 0){
+      return `Your logged sessions so far lean toward distraction or low energy across the board — that's useful to know, not a failure. Try a short ${Math.min(estMin,25)}-min slot in the morning before anything else competes for attention, and see if that changes things.
+      <span class="small">Based on: ${sessions.length} of your logged sessions</span>`;
+    }
+
+    const lines = top.map(t => `<strong>${DAY_NAMES[t.weekday]}, ${t.block}</strong>`).join(' or ');
+    return `Based on your own history, you tend to focus best around ${lines}. A ${estMin}-min slot there has a good chance of sticking.
+    <span class="small">Based on: ${sessions.length} of your logged sessions</span>`;
+  }
+
+  /* ---------- week review ---------- */
+  function renderReview(){
+    const weekGrid = document.getElementById('weekGrid');
+    weekGrid.innerHTML='';
+
+    const now = new Date();
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
+    startOfWeek.setHours(0,0,0,0);
+
+    let weekTotal = 0;
+    let maxDayTotal = 1;
+    const dayTotals = [];
+
+    for(let i=0;i<7;i++){
+      const d = new Date(startOfWeek);
+      d.setDate(startOfWeek.getDate()+i);
+      const iso = d.toISOString().slice(0,10);
+      const entries = sessions.filter(s=>s.date===iso);
+      const total = entries.reduce((sum,e)=>sum+e.durationMin,0);
+      dayTotals.push({date:d, iso, entries, total});
+      weekTotal += total;
+      if(total > maxDayTotal) maxDayTotal = total;
+    }
+
+    dayTotals.forEach(day=>{
+      const row = document.createElement('div');
+      row.className='day-row';
+      const pct = Math.round((day.total/maxDayTotal)*100);
+      const hrs = (day.total/60).toFixed(1);
+      row.innerHTML = `
+        <div class="day-head">
+          <div class="day-name">${DAY_NAMES[day.date.getDay()]}</div>
+          <div class="day-total">${day.total ? hrs+'h logged' : '—'}</div>
+        </div>
+        <div class="day-bar-track"><div class="day-bar-fill" style="width:${day.total?pct:0}%"></div></div>
+        ${day.entries.map(e=>`<div class="entry-row"><span class="entry-task">${escapeHtml(e.task)}</span><span>${e.durationMin}m</span></div>`).join('') || '<div class="entry-row" style="color:var(--muted)">Nothing logged — and that\\'s alright.</div>'}
+      `;
+      weekGrid.appendChild(row);
+    });
+
+    // gentle insight
+    const insightText = document.getElementById('insightText');
+    if(sessions.length === 0){
+      insightText.textContent = "Log a few timer sessions and I'll start noticing patterns here — no judgment, just observations.";
+    } else {
+      const moodCounts = {};
+      sessions.forEach(s=>{ if(s.mood) moodCounts[s.mood] = (moodCounts[s.mood]||0)+1; });
+      const topMood = Object.entries(moodCounts).sort((a,b)=>b[1]-a[1])[0];
+      const totalHrs = (weekTotal/60).toFixed(1);
+      let msg = `You've logged ${totalHrs} hour${totalHrs==1?'':'s'} of focused time this week. `;
+      if(topMood){
+        if(topMood[0] === 'Focused'){
+          msg += `Most sessions were genuinely focused — whatever you're doing is working.`;
+        } else if(topMood[0] === 'Low energy'){
+          msg += `Low energy came up most often. Maybe the goal isn't more discipline, but shorter slots or a different time of day.`;
+        } else if(topMood[0] === 'Distracted'){
+          msg += `Distraction was the most common thing pulling at you — worth noticing what's usually nearby when that happens.`;
+        } else if(topMood[0] === 'Unclear task'){
+          msg += `"Unclear task" showed up a lot — breaking things into smaller, more specific to-dos might help more than trying harder.`;
+        } else if(topMood[0] === 'Overwhelmed'){
+          msg += `Things felt overwhelming more than once — that's a sign to shrink the task, not push through it.`;
+        }
+      }
+      insightText.textContent = msg;
+    }
+  }
+
+  renderTodos();
+  renderReview();
+})();
+</script>
+</body>
+</html>
