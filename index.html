@@ -6,6 +6,8 @@
 <title>Lamp — a gentle pomodoro</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <style>
   :root{
     --bg: #1F1B2E;
@@ -176,6 +178,36 @@
   }
 
   .footnote{ text-align:center; color: var(--muted); font-size: 11.5px; margin-top: 30px; line-height:1.6; }
+
+  /* ---- Sync ---- */
+  .sync-status{
+    display:flex; align-items:center; gap:8px; font-size:13px; padding: 10px 14px;
+    background: var(--surface-hi); border-radius: 10px; margin-bottom: 16px;
+  }
+  .sync-dot{ width:8px; height:8px; border-radius:50%; background: var(--muted); flex-shrink:0; }
+  .sync-dot.connected{ background: var(--sage); }
+  .sync-dot.error{ background: #D9776B; }
+  .field-label{ display:block; font-size:13px; color: var(--muted); margin: 14px 0 6px; }
+  .sync-textarea{
+    width:100%; min-height:90px; background: var(--surface-hi); border:1px solid var(--ring-track);
+    color: var(--text); border-radius: 10px; padding: 10px 12px; font-family:'IBM Plex Mono', monospace;
+    font-size: 12.5px; resize: vertical;
+  }
+  .sync-input{
+    width:100%; background: var(--surface-hi); border:1px solid var(--ring-track); color: var(--text);
+    border-radius: 10px; padding: 10px 12px; font-family:'Inter'; font-size: 14px;
+  }
+  .step-block{
+    border-left: 2px solid var(--ring-track); padding-left: 14px; margin-bottom: 16px; font-size: 13.5px;
+    color: var(--muted); line-height: 1.6;
+  }
+  .step-block strong{ color: var(--text); }
+  code.inline{ background: var(--surface-hi); padding: 1px 6px; border-radius: 5px; font-family:'IBM Plex Mono', monospace; font-size: 12px; color: var(--amber); }
+  pre.rules-block{
+    background: #171326; border-radius: 10px; padding: 12px 14px; font-family:'IBM Plex Mono', monospace;
+    font-size: 11.5px; color: var(--muted); overflow-x:auto; line-height:1.6;
+  }
+  details.help summary{ cursor:pointer; color: var(--amber); font-size: 13px; margin: 8px 0; }
 </style>
 </head>
 <body>
@@ -193,6 +225,7 @@
     <button class="tab-btn active" data-view="timer">Timer</button>
     <button class="tab-btn" data-view="todos">To-dos</button>
     <button class="tab-btn" data-view="review">This week</button>
+    <button class="tab-btn" data-view="sync">Sync</button>
   </nav>
 
   <!-- TIMER VIEW -->
@@ -276,8 +309,63 @@
     </div>
   </section>
 
+  <!-- SYNC VIEW -->
+  <section class="view" id="view-sync">
+    <div class="card">
+      <h2 class="section-title">Sync across your devices</h2>
+      <div class="sync-status" id="syncStatusRow">
+        <div class="sync-dot" id="syncDot"></div>
+        <span id="syncStatusText">Not connected — your data is only on this device.</span>
+      </div>
+
+      <details class="help">
+        <summary>First time? Here's the free one-time setup (~5 minutes)</summary>
+        <div class="step-block">
+          <strong>1.</strong> Go to <code class="inline">firebase.google.com</code> → Console → "Add project" (free, no credit card needed for this).
+        </div>
+        <div class="step-block">
+          <strong>2.</strong> Inside your new project, click "Build → Firestore Database" → Create database → start in <strong>test mode</strong>.
+        </div>
+        <div class="step-block">
+          <strong>3.</strong> Click "Rules" in Firestore and replace them with this, then Publish:
+          <pre class="rules-block">rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /lamp_sync/{code} {
+      allow read, write: if true;
+    }
+  }
+}</pre>
+          This keeps it free and simple, but note it's <em>not real authentication</em> — anyone who knows your exact sync code (below) could read or write that one document. Use a long, unguessable code, and don't share it.
+        </div>
+        <div class="step-block">
+          <strong>4.</strong> Click the gear icon → Project settings → scroll to "Your apps" → click the <code class="inline">&lt;/&gt;</code> web icon → register the app → copy the whole <code class="inline">firebaseConfig</code> object it shows you.
+        </div>
+        <div class="step-block">
+          <strong>5.</strong> Paste that config below, pick a sync code (any long phrase only you know), and hit Connect. Do the exact same on your other device.
+        </div>
+      </details>
+
+      <label class="field-label">Paste your Firebase config object here</label>
+      <textarea class="sync-textarea" id="fbConfigInput" placeholder='{
+  apiKey: "...",
+  authDomain: "...",
+  projectId: "...",
+  ...
+}'></textarea>
+
+      <label class="field-label">Your sync code (same on every device)</label>
+      <input type="text" class="sync-input" id="syncCodeInput" placeholder="e.g. quiet-lamp-october-42">
+
+      <div class="controls" style="margin-top:16px;">
+        <button class="btn btn-primary" id="connectSyncBtn">Connect</button>
+        <button class="btn btn-ghost" id="disconnectSyncBtn">Disconnect this device</button>
+      </div>
+    </div>
+  </section>
+
   <div class="footnote">
-    Everything is stored only in this browser (no account, no server, no tracking).<br>
+    Without sync connected, everything stays only in this browser (no account, no tracking).<br>
     Suggestions are based purely on your own logged patterns — not a general AI model.
   </div>
 </div>
@@ -298,6 +386,127 @@
   let sessions = load('lamp_sessions', []);   // {id,date,weekday,startHour,durationMin,task,mood}
   let todos    = load('lamp_todos', []);      // {id,text,estMin,done,createdAt}
 
+  /* ---------- cloud sync (Firebase Firestore, optional) ---------- */
+  let fbApp = null, fbDb = null, docRef = null, unsubscribe = null;
+  let syncConnected = false;
+  let lastKnownUpdatedAt = 0;
+
+  function setSyncStatus(text, isError){
+    const dot = document.getElementById('syncDot');
+    const label = document.getElementById('syncStatusText');
+    if(!dot || !label) return;
+    label.textContent = text;
+    dot.className = 'sync-dot' + (isError ? ' error' : (syncConnected ? ' connected' : ''));
+  }
+
+  function pushToCloud(){
+    if(!syncConnected || !docRef) return;
+    const payload = { sessions, todos, updatedAt: Date.now() };
+    lastKnownUpdatedAt = payload.updatedAt;
+    docRef.set(payload).catch(err=>{
+      setSyncStatus('Sync error: ' + err.message, true);
+    });
+  }
+
+  function saveSessions(){ save('lamp_sessions', sessions); pushToCloud(); }
+  function saveTodos(){ save('lamp_todos', todos); pushToCloud(); }
+
+  function mergeById(localArr, remoteArr){
+    const map = {};
+    localArr.forEach(item => map[item.id] = item);
+    remoteArr.forEach(item => map[item.id] = item); // remote wins on conflict, but nothing is lost
+    return Object.values(map);
+  }
+
+  function connectSync(configText, syncCode, isAutoConnect){
+    let config;
+    try{
+      config = (new Function('return (' + configText + ')'))();
+    }catch(e){
+      setSyncStatus('Could not read that config — check it was pasted in full.', true);
+      return;
+    }
+    if(!syncCode || !syncCode.trim()){
+      setSyncStatus('Add a sync code first.', true);
+      return;
+    }
+    syncCode = syncCode.trim();
+
+    try{
+      fbApp = firebase.apps.length ? firebase.apps[0] : firebase.initializeApp(config);
+      fbDb = firebase.firestore();
+      docRef = fbDb.collection('lamp_sync').doc(syncCode);
+    }catch(e){
+      setSyncStatus('Firebase setup failed: ' + e.message, true);
+      return;
+    }
+
+    setSyncStatus('Connecting...', false);
+
+    docRef.get().then(snap=>{
+      syncConnected = true;
+      save('lamp_fb_config', configText);
+      save('lamp_sync_code', syncCode);
+
+      if(snap.exists){
+        const remote = snap.data();
+        sessions = mergeById(sessions, remote.sessions || []);
+        todos = mergeById(todos, remote.todos || []);
+        save('lamp_sessions', sessions);
+        save('lamp_todos', todos);
+      }
+      pushToCloud();
+      setSyncStatus('Synced — this device is connected.', false);
+      renderTodos(); renderReview();
+
+      if(unsubscribe) unsubscribe();
+      unsubscribe = docRef.onSnapshot(snap2=>{
+        const data = snap2.data();
+        if(!data || !data.updatedAt) return;
+        if(data.updatedAt > lastKnownUpdatedAt){
+          sessions = data.sessions || [];
+          todos = data.todos || [];
+          lastKnownUpdatedAt = data.updatedAt;
+          save('lamp_sessions', sessions);
+          save('lamp_todos', todos);
+          renderTodos(); renderReview();
+          setSyncStatus('Synced — updated just now from another device.', false);
+        }
+      }, err=>{
+        setSyncStatus('Sync error: ' + err.message, true);
+      });
+    }).catch(err=>{
+      setSyncStatus('Could not connect: ' + err.message, true);
+    });
+  }
+
+  function disconnectSync(){
+    if(unsubscribe) unsubscribe();
+    syncConnected = false;
+    docRef = null;
+    localStorage.removeItem('lamp_fb_config');
+    localStorage.removeItem('lamp_sync_code');
+    setSyncStatus('Not connected — your data is only on this device.', false);
+  }
+
+  function renderSyncView(){
+    const savedConfig = load('lamp_fb_config', '');
+    const savedCode = load('lamp_sync_code', '');
+    if(savedConfig) document.getElementById('fbConfigInput').value = savedConfig;
+    if(savedCode) document.getElementById('syncCodeInput').value = savedCode;
+    if(savedConfig && savedCode && !syncConnected){
+      connectSync(savedConfig, savedCode, true);
+    }
+  }
+
+  document.getElementById('connectSyncBtn').addEventListener('click', ()=>{
+    const configText = document.getElementById('fbConfigInput').value.trim();
+    const syncCode = document.getElementById('syncCodeInput').value.trim();
+    if(!configText){ setSyncStatus('Paste your Firebase config first.', true); return; }
+    connectSync(configText, syncCode, false);
+  });
+  document.getElementById('disconnectSyncBtn').addEventListener('click', disconnectSync);
+
   /* ---------- tabs ---------- */
   document.querySelectorAll('.tab-btn').forEach(btn=>{
     btn.addEventListener('click', ()=>{
@@ -307,6 +516,7 @@
       document.getElementById('view-'+btn.dataset.view).classList.add('active');
       if(btn.dataset.view === 'todos') renderTodos();
       if(btn.dataset.view === 'review') renderReview();
+      if(btn.dataset.view === 'sync') renderSyncView();
     });
   });
 
@@ -422,7 +632,7 @@
       task: task,
       mood: selectedMood
     });
-    save('lamp_sessions', sessions);
+    saveSessions();
     finishReflect();
   });
   document.getElementById('skipReflectBtn').addEventListener('click', finishReflect);
@@ -453,7 +663,7 @@
     if(!text) return;
     const est = parseInt(document.getElementById('newTodoEst').value,10);
     todos.push({id:Date.now(), text, estMin:est, done:false, createdAt:new Date().toISOString(), showSuggestion:false});
-    save('lamp_todos', todos);
+    saveTodos();
     input.value='';
     renderTodos();
   }
@@ -486,7 +696,7 @@
         const id = Number(el.dataset.id);
         const t = todos.find(t=>t.id===id);
         t.done = !t.done;
-        save('lamp_todos', todos);
+        saveTodos();
         renderTodos();
       });
     });
@@ -494,7 +704,7 @@
       el.addEventListener('click', ()=>{
         const id = Number(el.dataset.id);
         todos = todos.filter(t=>t.id!==id);
-        save('lamp_todos', todos);
+        saveTodos();
         renderTodos();
       });
     });
