@@ -7,7 +7,318 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2245%22 fill=%22%235B7B6F%22/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css" />
+<style>
+:root {
+  --bg: #EFF3EF;
+  --surface: #FFFFFF;
+  --sage: #5B7B6F;
+  --sage-light: #9DBBAD;
+  --sage-dark: #3F5B50;
+  --honey: #C9A876;
+  --honey-light: #E7D3AC;
+  --ink: #2B332F;
+  --ink-muted: #6B776F;
+  --line: #DDE5DF;
+  --radius: 18px;
+  --shadow: 0 8px 24px rgba(43, 51, 47, 0.06);
+  --font-display: "Fraunces", serif;
+  --font-body: "Inter", sans-serif;
+  --font-mono: "IBM Plex Mono", monospace;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+button { font-family: inherit; }
+
+.app { min-height: 100vh; display: flex; flex-direction: column; }
+
+/* ---------- Topbar ---------- */
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 18px 28px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  flex-wrap: wrap;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--sage-dark);
+}
+
+.tabs { display: flex; gap: 4px; flex: 1; }
+
+.tab {
+  border: none;
+  background: transparent;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink-muted);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.tab:hover { background: var(--bg); color: var(--ink); }
+.tab.is-active { background: var(--sage); color: white; }
+
+.sync-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+.sync-indicator .dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--honey);
+}
+.sync-indicator.is-synced .dot { background: var(--sage); }
+
+/* ---------- Layout ---------- */
+main { flex: 1; display: flex; justify-content: center; padding: 40px 20px 80px; }
+.view { display: none; width: 100%; max-width: 760px; }
+.view.is-active { display: block; }
+
+.panel {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 36px 40px;
+}
+
+h1 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 30px;
+  margin: 0 0 8px;
+  color: var(--sage-dark);
+}
+
+.lede { color: var(--ink-muted); font-size: 15px; line-height: 1.6; margin: 0 0 28px; max-width: 56ch; }
+
+/* ---------- Timer ---------- */
+.timer-layout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 36px;
+  padding: 20px 0 40px;
+}
+
+.ring-wrap { position: relative; width: 280px; height: 280px; }
+.ring { width: 100%; height: 100%; transform: rotate(-90deg); }
+.ring-track { fill: none; stroke: var(--line); stroke-width: 10; }
+.ring-fill {
+  fill: none;
+  stroke: var(--honey);
+  stroke-width: 10;
+  stroke-linecap: round;
+  stroke-dasharray: 653;
+  stroke-dashoffset: 653;
+  transition: stroke-dashoffset 1s linear;
+}
+.tide { transition: none; }
+
+.ring-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  pointer-events: none;
+}
+.time-readout {
+  font-family: var(--font-mono);
+  font-size: 44px;
+  font-weight: 500;
+  color: var(--ink);
+}
+.time-caption { font-size: 13px; color: var(--ink-muted); margin-top: 6px; }
+
+.timer-controls { display: flex; flex-direction: column; align-items: center; gap: 20px; width: 100%; max-width: 420px; }
+
+.duration-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.chip {
+  border: 1.5px solid var(--line);
+  background: var(--surface);
+  padding: 8px 18px;
+  border-radius: 999px;
+  font-size: 14px;
+  color: var(--ink);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.chip:hover { border-color: var(--sage-light); }
+.chip.is-selected { background: var(--sage); border-color: var(--sage); color: white; }
+
+.todo-attach { width: 100%; display: flex; flex-direction: column; gap: 6px; }
+.todo-attach label { font-size: 13px; color: var(--ink-muted); }
+.todo-attach .optional { font-weight: 400; opacity: 0.7; }
+.todo-attach select {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1.5px solid var(--line);
+  background: var(--surface);
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.primary-actions { display: flex; gap: 10px; }
+
+.btn {
+  border: none;
+  padding: 12px 28px;
+  border-radius: 999px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.1s ease, opacity 0.15s ease;
+}
+.btn:active { transform: scale(0.97); }
+.btn-primary { background: var(--sage); color: white; }
+.btn-primary:hover { background: var(--sage-dark); }
+.btn-ghost { background: transparent; color: var(--ink-muted); border: 1.5px solid var(--line); }
+.btn-ghost:hover { border-color: var(--sage-light); color: var(--ink); }
+
+.microcopy { font-size: 13px; color: var(--ink-muted); text-align: center; margin: 0; }
+.is-hidden { display: none !important; }
+
+/* ---------- Modal ---------- */
+.modal-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(43, 51, 47, 0.35);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 50;
+}
+.modal {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 32px;
+  width: min(420px, 90vw);
+  box-shadow: var(--shadow);
+}
+.modal h2 { font-family: var(--font-display); margin: 0 0 6px; color: var(--sage-dark); }
+.modal-sub { color: var(--ink-muted); font-size: 14px; margin: 0 0 16px; }
+.modal textarea {
+  width: 100%; min-height: 90px; padding: 12px;
+  border-radius: 10px; border: 1.5px solid var(--line);
+  font-family: inherit; font-size: 14px; resize: vertical;
+}
+.modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+
+/* ---------- Todos ---------- */
+.todo-form { display: flex; gap: 10px; margin-bottom: 24px; }
+.todo-form input[type="text"] {
+  flex: 1; padding: 12px 14px; border-radius: 10px; border: 1.5px solid var(--line); font-size: 14px;
+}
+.todo-form input[type="number"] {
+  width: 80px; padding: 12px 10px; border-radius: 10px; border: 1.5px solid var(--line); font-size: 14px;
+}
+
+.todo-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+
+.todo-item {
+  border: 1.5px solid var(--line);
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+.todo-item.is-done { opacity: 0.5; }
+.todo-item.is-done .todo-text { text-decoration: line-through; }
+
+.todo-row { display: flex; align-items: center; gap: 12px; }
+.todo-check {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 2px solid var(--sage-light);
+  cursor: pointer; flex-shrink: 0; background: transparent;
+}
+.todo-item.is-done .todo-check { background: var(--sage); border-color: var(--sage); }
+.todo-text { flex: 1; font-size: 15px; }
+.todo-meta { font-size: 12px; color: var(--ink-muted); }
+.todo-actions { display: flex; gap: 8px; margin-left: auto; }
+.todo-actions button {
+  border: none; background: var(--bg); color: var(--sage-dark);
+  font-size: 12px; padding: 6px 12px; border-radius: 999px; cursor: pointer;
+}
+.todo-actions button:hover { background: var(--sage-light); color: white; }
+
+.suggestions { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--line); display: flex; flex-wrap: wrap; gap: 8px; }
+.suggestion-slot {
+  font-size: 12.5px; padding: 6px 12px; border-radius: 999px;
+  background: var(--honey-light); color: var(--sage-dark);
+  border: none; cursor: pointer;
+}
+.suggestion-slot:hover { background: var(--honey); }
+.suggestion-note { font-size: 12px; color: var(--ink-muted); width: 100%; margin-top: 4px; }
+
+/* ---------- Week view ---------- */
+.week-chart {
+  display: flex; align-items: flex-end; gap: 12px;
+  height: 160px; padding: 0 8px 12px;
+  border-bottom: 1.5px solid var(--line);
+  margin-bottom: 10px;
+}
+.week-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 6px; }
+.week-bar {
+  width: 100%;
+  max-width: 36px;
+  background: var(--sage-light);
+  border-radius: 8px 8px 4px 4px;
+  transition: height 0.4s ease;
+}
+.week-bar.is-today { background: var(--sage); }
+.week-bar-label { font-size: 12px; color: var(--ink-muted); }
+.week-bar-value { font-size: 11px; color: var(--ink-muted); font-family: var(--font-mono); }
+
+.week-total { text-align: center; font-size: 14px; color: var(--ink-muted); margin: 6px 0 24px; }
+.week-total strong { color: var(--sage-dark); font-family: var(--font-mono); font-size: 16px; }
+
+.day-log { display: flex; flex-direction: column; gap: 18px; }
+.day-group h4 { font-family: var(--font-display); margin: 0 0 8px; color: var(--sage-dark); font-size: 16px; }
+.session-row { display: flex; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.session-row:last-child { border-bottom: none; }
+.session-note { color: var(--ink-muted); }
+.session-dur { font-family: var(--font-mono); font-size: 13px; color: var(--sage-dark); white-space: nowrap; }
+.empty-note { color: var(--ink-muted); font-size: 14px; font-style: italic; }
+
+/* ---------- Settings ---------- */
+.setup-note {
+  margin-top: 24px; padding: 18px 20px;
+  background: var(--bg); border-radius: 14px;
+}
+.setup-note h3 { margin: 0 0 6px; font-size: 15px; }
+.setup-note p { margin: 0; font-size: 13px; color: var(--ink-muted); line-height: 1.6; }
+.setup-note code { background: var(--surface); padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono); font-size: 12px; }
+.fine-print { font-size: 13px; color: var(--ink-muted); margin-top: 12px; }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 640px) {
+  .topbar { padding: 14px 16px; gap: 12px; }
+  .tabs { order: 3; width: 100%; justify-content: space-between; }
+  .panel { padding: 26px 20px; }
+  .ring-wrap { width: 230px; height: 230px; }
+  .time-readout { font-size: 36px; }
+}
+
+</style>
 </head>
 <body>
 
@@ -152,6 +463,785 @@
   </main>
 </div>
 
-<script type="module" src="app.js"></script>
+<script>
+// --- Firebase config (optional cross-device sync) ---
+// Edit the values below with your own free Firebase project's keys to enable sync.
+// Leave as-is and the app runs fully offline on local storage. See the setup guide
+// further down this file / in the Sync tab for step-by-step instructions.
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID",
+};
+const isConfigured = firebaseConfig.apiKey !== "YOUR_API_KEY";
+// storage.js — local-first data layer.
+// Everything reads/writes localStorage instantly. Firebase (sync.js) mirrors
+// this in the background when the user signs in — the app never blocks on network.
+
+const KEYS = {
+  sessions: "tide.sessions",
+  todos: "tide.todos",
+};
+
+function uid() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
+
+function readAll(key) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeAll(key, arr) {
+  localStorage.setItem(key, JSON.stringify(arr));
+}
+
+const Store = {
+  // ---- Sessions ----
+  getSessions() {
+    return readAll(KEYS.sessions);
+  },
+  addSession({ startISO, durationMin, label, note, todoId }) {
+    const sessions = readAll(KEYS.sessions);
+    const record = {
+      id: uid(),
+      startISO,
+      dateISO: startISO.slice(0, 10),
+      durationMin,
+      label: label || "",
+      note: note || "",
+      todoId: todoId || null,
+      updatedAt: Date.now(),
+    };
+    sessions.push(record);
+    writeAll(KEYS.sessions, sessions);
+    document.dispatchEvent(new CustomEvent("tide:sessions-changed"));
+    return record;
+  },
+  replaceAll(sessions) {
+    writeAll(KEYS.sessions, sessions);
+    document.dispatchEvent(new CustomEvent("tide:sessions-changed"));
+  },
+
+  // ---- Todos ----
+  getTodos() {
+    return readAll(KEYS.todos);
+  },
+  addTodo({ text, estMinutes }) {
+    const todos = readAll(KEYS.todos);
+    const record = {
+      id: uid(),
+      text,
+      estMinutes: Number(estMinutes) || 25,
+      done: false,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      suggestedSlots: [],
+    };
+    todos.push(record);
+    writeAll(KEYS.todos, todos);
+    document.dispatchEvent(new CustomEvent("tide:todos-changed"));
+    return record;
+  },
+  updateTodo(id, patch) {
+    const todos = readAll(KEYS.todos);
+    const idx = todos.findIndex((t) => t.id === id);
+    if (idx === -1) return;
+    todos[idx] = { ...todos[idx], ...patch, updatedAt: Date.now() };
+    writeAll(KEYS.todos, todos);
+    document.dispatchEvent(new CustomEvent("tide:todos-changed"));
+  },
+  deleteTodo(id) {
+    const todos = readAll(KEYS.todos).filter((t) => t.id !== id);
+    writeAll(KEYS.todos, todos);
+    document.dispatchEvent(new CustomEvent("tide:todos-changed"));
+  },
+  replaceAllTodos(todos) {
+    writeAll(KEYS.todos, todos);
+    document.dispatchEvent(new CustomEvent("tide:todos-changed"));
+  },
+};
+
+// suggest.js — a free, local heuristic for "when should I do this?"
+//
+// No API, no model call. It looks at when YOUR past focus sessions actually
+// started (day-of-week + hour), weights recent history more heavily than old
+// history, smooths across neighbouring hours, and proposes open slots in the
+// next 7 days that match your own demonstrated rhythm.
+//
+// If there isn't enough history yet, it falls back to gentle, uncontroversial
+// defaults (mid-morning / early evening) rather than pretending confidence
+// it doesn't have.
+
+const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const CANDIDATE_HOURS = [8, 9, 10, 11, 13, 14, 15, 16, 17, 19, 20, 21];
+const MIN_SESSIONS_FOR_CONFIDENCE = 8;
+
+function weekOf(dateISO) {
+  return Math.floor(new Date(dateISO).getTime() / (7 * 24 * 3600 * 1000));
+}
+
+/** Build a score map of "weekday-hour" -> weighted frequency from history. */
+function buildHistogram(sessions) {
+  const now = Date.now();
+  const scores = {};
+  for (const s of sessions) {
+    const started = new Date(s.startISO);
+    if (isNaN(started)) continue;
+    const ageWeeks = (now - started.getTime()) / (7 * 24 * 3600 * 1000);
+    const recencyWeight = 1 / (1 + Math.max(0, ageWeeks) * 0.25); // recent counts more
+    const weekday = started.getDay();
+    const hour = started.getHours();
+    const key = `${weekday}-${hour}`;
+    scores[key] = (scores[key] || 0) + recencyWeight;
+
+    // light smoothing into the adjacent hour on either side
+    const prevKey = `${weekday}-${hour - 1}`;
+    const nextKey = `${weekday}-${hour + 1}`;
+    scores[prevKey] = (scores[prevKey] || 0) + recencyWeight * 0.35;
+    scores[nextKey] = (scores[nextKey] || 0) + recencyWeight * 0.35;
+  }
+  return scores;
+}
+
+function defaultScore(hour) {
+  // Gentle uncontroversial fallback curve when history is thin:
+  // mild preference for mid-morning and early evening, avoids very early/late.
+  if (hour >= 9 && hour <= 11) return 1.0;
+  if (hour >= 19 && hour <= 20) return 0.9;
+  if (hour >= 14 && hour <= 16) return 0.6;
+  return 0.3;
+}
+
+/**
+ * @param {Array} sessions - Store.getSessions()
+ * @param {Array} existingTodos - other todos, to avoid stacking suggestions on identical slots
+ * @param {number} estMinutes
+ * @returns {{slots: Array<{dateISO, weekday, hour, label, score}>, confident: boolean}}
+ */
+function suggestSlots(sessions, existingTodos, estMinutes) {
+  const confident = sessions.length >= MIN_SESSIONS_FOR_CONFIDENCE;
+  const histogram = buildHistogram(sessions);
+
+  // Slots already suggested-and-kept by other pending todos this week, so we
+  // spread work out rather than piling everything into one "best" hour.
+  const taken = new Set(
+    existingTodos
+      .filter((t) => !t.done)
+      .flatMap((t) => t.suggestedSlots || [])
+      .map((s) => `${s.dateISO}-${s.hour}`)
+  );
+
+  const candidates = [];
+  const today = new Date();
+  for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
+    const d = new Date(today);
+    d.setDate(d.getDate() + dayOffset);
+    const weekday = d.getDay();
+    const dateISO = d.toISOString().slice(0, 10);
+
+    for (const hour of CANDIDATE_HOURS) {
+      // skip slots in the past today
+      if (dayOffset === 0 && hour <= today.getHours()) continue;
+
+      const key = `${dateISO}-${hour}`;
+      if (taken.has(key)) continue;
+
+      const historyScore = histogram[`${weekday}-${hour}`] || 0;
+      const score = confident
+        ? historyScore + defaultScore(hour) * 0.15
+        : defaultScore(hour) + historyScore * 0.3;
+
+      candidates.push({ dateISO, weekday, hour, score });
+    }
+  }
+
+  candidates.sort((a, b) => b.score - a.score || a.dateISO.localeCompare(b.dateISO));
+
+  // Take top slots but keep them on different days where possible, so the
+  // suggestion is "spread across your week" rather than 3 slots on one day.
+  const chosen = [];
+  const usedDays = new Set();
+  for (const c of candidates) {
+    if (chosen.length >= 3) break;
+    if (usedDays.has(c.dateISO) && chosen.length < 2) continue;
+    chosen.push(c);
+    usedDays.add(c.dateISO);
+  }
+  if (chosen.length < 3) {
+    for (const c of candidates) {
+      if (chosen.length >= 3) break;
+      if (!chosen.includes(c)) chosen.push(c);
+    }
+  }
+
+  const label = (c) => {
+    const d = new Date(c.dateISO + "T00:00:00");
+    const dayLabel = DAY_NAMES[c.weekday];
+    const hour12 = c.hour % 12 === 0 ? 12 : c.hour % 12;
+    const ampm = c.hour < 12 ? "am" : "pm";
+    return `${dayLabel} ${hour12}${ampm}`;
+  };
+
+  return {
+    confident,
+    estMinutes,
+    slots: chosen.map((c) => ({ ...c, label: label(c) })),
+  };
+}
+// sync.js — optional cross-device sync via the user's own free Firebase project.
+// The app works fully offline without this; when configured, it layers on top:
+// local writes happen instantly, then get mirrored to Firestore in the background,
+// and a realtime listener pulls in changes made from other devices.
+
+
+
+
+let firebaseApp = null;
+let auth = null;
+let db = null;
+let currentUser = null;
+let unsubscribeSessions = null;
+let unsubscribeTodos = null;
+
+const Sync = {
+  isConfigured,
+  currentUser: () => currentUser,
+
+  async init({ onStatusChange }) {
+    if (!isConfigured) {
+      onStatusChange({ state: "offline-only", reason: "not-configured" });
+      return;
+    }
+    try {
+      const [{ initializeApp }, authMod, fsMod] = await Promise.all([
+        import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"),
+        import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"),
+        import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"),
+      ]);
+
+      firebaseApp = initializeApp(firebaseConfig);
+      auth = authMod.getAuth(firebaseApp);
+      db = fsMod.getFirestore(firebaseApp);
+
+      this._authMod = authMod;
+      this._fsMod = fsMod;
+
+      authMod.onAuthStateChanged(auth, async (user) => {
+        currentUser = user;
+        if (user) {
+          onStatusChange({ state: "synced", user });
+          await this._mergeAndSubscribe(fsMod);
+        } else {
+          onStatusChange({ state: "offline-only" });
+          if (unsubscribeSessions) unsubscribeSessions();
+          if (unsubscribeTodos) unsubscribeTodos();
+        }
+      });
+    } catch (err) {
+      console.warn("Tide: Firebase failed to initialize, staying offline.", err);
+      onStatusChange({ state: "offline-only", reason: "init-error" });
+    }
+  },
+
+  async signIn() {
+    if (!auth) return;
+    const provider = new this._authMod.GoogleAuthProvider();
+    await this._authMod.signInWithPopup(auth, provider);
+  },
+
+  async signOut() {
+    if (!auth) return;
+    await this._authMod.signOut(auth);
+  },
+
+  // --- pull remote + merge with local, then push local-only records up ---
+  async _mergeAndSubscribe(fsMod) {
+    const uidPath = currentUser.uid;
+
+    await this._mergeCollection(fsMod, "sessions", uidPath, Store.getSessions, Store.replaceAll);
+    await this._mergeCollection(fsMod, "todos", uidPath, Store.getTodos, Store.replaceAllTodos);
+
+    // Live listeners: keep local storage in sync with remote changes from other devices.
+    const sessionsRef = fsMod.collection(db, "users", uidPath, "sessions");
+    unsubscribeSessions = fsMod.onSnapshot(sessionsRef, (snap) => {
+      const remote = snap.docs.map((d) => d.data());
+      Store.replaceAll(mergeByUpdatedAt(Store.getSessions(), remote));
+    });
+
+    const todosRef = fsMod.collection(db, "users", uidPath, "todos");
+    unsubscribeTodos = fsMod.onSnapshot(todosRef, (snap) => {
+      const remote = snap.docs.map((d) => d.data());
+      Store.replaceAllTodos(mergeByUpdatedAt(Store.getTodos(), remote));
+    });
+
+    // Push any local record up (covers first sign-in with existing local data).
+    document.addEventListener("tide:sessions-changed", () => this._pushAll("sessions", Store.getSessions()));
+    document.addEventListener("tide:todos-changed", () => this._pushAll("todos", Store.getTodos()));
+    this._pushAll("sessions", Store.getSessions());
+    this._pushAll("todos", Store.getTodos());
+  },
+
+  async _mergeCollection(fsMod, name, uidPath, getLocal, setLocal) {
+    const ref = fsMod.collection(db, "users", uidPath, name);
+    const snap = await fsMod.getDocs(ref);
+    const remote = snap.docs.map((d) => d.data());
+    setLocal(mergeByUpdatedAt(getLocal(), remote));
+  },
+
+  async _pushAll(name, records) {
+    if (!currentUser || !db) return;
+    const fsMod = this._fsMod;
+    for (const r of records) {
+      const ref = fsMod.doc(db, "users", currentUser.uid, name, r.id);
+      fsMod.setDoc(ref, r, { merge: true }).catch(() => {});
+    }
+  },
+};
+
+/** Last-write-wins merge keyed by id, comparing updatedAt timestamps. */
+function mergeByUpdatedAt(localArr, remoteArr) {
+  const byId = new Map();
+  for (const item of localArr) byId.set(item.id, item);
+  for (const item of remoteArr) {
+    const existing = byId.get(item.id);
+    if (!existing || (item.updatedAt || 0) >= (existing.updatedAt || 0)) {
+      byId.set(item.id, item);
+    }
+  }
+  return Array.from(byId.values());
+}
+
+/* ---------------------------------------------------------------
+   Tabs
+--------------------------------------------------------------- */
+const tabs = document.querySelectorAll(".tab");
+const views = document.querySelectorAll(".view");
+
+tabs.forEach((tab) => {
+  tab.addEventListener("click", () => {
+    tabs.forEach((t) => { t.classList.remove("is-active"); t.setAttribute("aria-selected", "false"); });
+    views.forEach((v) => v.classList.remove("is-active"));
+    tab.classList.add("is-active");
+    tab.setAttribute("aria-selected", "true");
+    document.getElementById(`view-${tab.dataset.view}`).classList.add("is-active");
+    if (tab.dataset.view === "todos") renderTodos();
+    if (tab.dataset.view === "week") renderWeek();
+  });
+});
+
+/* ---------------------------------------------------------------
+   Timer engine
+--------------------------------------------------------------- */
+const RING_CIRCUMFERENCE = 2 * Math.PI * 104; // matches r=104 in SVG
+
+const durationRow = document.getElementById("durationRow");
+const customChip = document.getElementById("customChip");
+const startBtn = document.getElementById("startBtn");
+const pauseBtn = document.getElementById("pauseBtn");
+const stopBtn = document.getElementById("stopBtn");
+const timeReadout = document.getElementById("timeReadout");
+const timeCaption = document.getElementById("timeCaption");
+const timerHint = document.getElementById("timerHint");
+const ringFill = document.getElementById("ringFill");
+const tideRect = document.getElementById("tideRect");
+const attachTodo = document.getElementById("attachTodo");
+
+let selectedMinutes = 25;
+let totalSeconds = selectedMinutes * 60;
+let remainingSeconds = totalSeconds;
+let tickHandle = null;
+let isRunning = false;
+let isPaused = false;
+let startedAtISO = null;
+
+function formatTime(sec) {
+  const m = Math.floor(sec / 60).toString().padStart(2, "0");
+  const s = Math.floor(sec % 60).toString().padStart(2, "0");
+  return `${m}:${s}`;
+}
+
+function setDuration(mins) {
+  selectedMinutes = mins;
+  totalSeconds = mins * 60;
+  remainingSeconds = totalSeconds;
+  timeReadout.textContent = formatTime(remainingSeconds);
+  updateRing();
+  [...durationRow.querySelectorAll(".chip")].forEach((c) => c.classList.remove("is-selected"));
+  const match = [...durationRow.querySelectorAll(".chip")].find((c) => Number(c.dataset.mins) === mins);
+  if (match) match.classList.add("is-selected");
+}
+
+durationRow.querySelectorAll(".chip[data-mins]").forEach((chip) => {
+  chip.addEventListener("click", () => { if (!isRunning) setDuration(Number(chip.dataset.mins)); });
+});
+
+customChip.addEventListener("click", () => {
+  if (isRunning) return;
+  const val = prompt("Custom length in minutes:", selectedMinutes);
+  const n = parseInt(val, 10);
+  if (n && n > 0 && n <= 240) setDuration(n);
+});
+
+function updateRing() {
+  const progress = 1 - remainingSeconds / totalSeconds; // 0 -> 1 as time passes
+  const offset = RING_CIRCUMFERENCE * (1 - progress);
+  ringFill.setAttribute("stroke-dasharray", RING_CIRCUMFERENCE);
+  ringFill.setAttribute("stroke-dashoffset", offset);
+
+  // Tide rect: rect starts at y=240 (fully below the circle, i.e. empty)
+  // and rises to y = 240 - 240*progress as time fills up.
+  const y = 240 - 240 * progress;
+  tideRect.setAttribute("y", y);
+}
+
+function tick() {
+  remainingSeconds -= 1;
+  timeReadout.textContent = formatTime(Math.max(0, remainingSeconds));
+  updateRing();
+  if (remainingSeconds <= 0) {
+    finishSession(true);
+  }
+}
+
+startBtn.addEventListener("click", () => {
+  if (isPaused) {
+    isPaused = false;
+    isRunning = true;
+    tickHandle = setInterval(tick, 1000);
+    startBtn.classList.add("is-hidden");
+    pauseBtn.classList.remove("is-hidden");
+    timeCaption.textContent = "gathering time…";
+    return;
+  }
+  startedAtISO = new Date().toISOString();
+  isRunning = true;
+  startBtn.classList.add("is-hidden");
+  pauseBtn.classList.remove("is-hidden");
+  stopBtn.classList.remove("is-hidden");
+  durationRow.querySelectorAll(".chip").forEach((c) => (c.disabled = true));
+  attachTodo.disabled = true;
+  timeCaption.textContent = "gathering time…";
+  timerHint.textContent = "You can pause any time — this isn't a race.";
+  tickHandle = setInterval(tick, 1000);
+});
+
+pauseBtn.addEventListener("click", () => {
+  isPaused = true;
+  isRunning = false;
+  clearInterval(tickHandle);
+  startBtn.classList.remove("is-hidden");
+  startBtn.textContent = "Resume";
+  pauseBtn.classList.add("is-hidden");
+  timeCaption.textContent = "paused — whenever you're ready";
+});
+
+stopBtn.addEventListener("click", () => {
+  if (confirm("End this session early? What you've focused so far will still be saved.")) {
+    finishSession(false);
+  }
+});
+
+function finishSession(completedFully) {
+  clearInterval(tickHandle);
+  isRunning = false;
+  isPaused = false;
+  const elapsedSeconds = totalSeconds - Math.max(0, remainingSeconds);
+  const elapsedMinutes = Math.max(1, Math.round(elapsedSeconds / 60));
+
+  startBtn.classList.remove("is-hidden");
+  startBtn.textContent = "Start";
+  pauseBtn.classList.add("is-hidden");
+  stopBtn.classList.add("is-hidden");
+  durationRow.querySelectorAll(".chip").forEach((c) => (c.disabled = false));
+  attachTodo.disabled = false;
+  timeCaption.textContent = "ready when you are";
+  timerHint.textContent = "Pick a length, or just start — there's no wrong way to begin.";
+
+  pendingSession = {
+    startISO: startedAtISO || new Date().toISOString(),
+    durationMin: elapsedMinutes,
+    todoId: attachTodo.value || null,
+    label: attachTodo.value ? (attachTodo.options[attachTodo.selectedIndex].text) : "",
+  };
+  openLogModal();
+
+  setDuration(selectedMinutes); // reset ring for next round
+}
+
+setDuration(25);
+
+/* ---------------------------------------------------------------
+   Log modal
+--------------------------------------------------------------- */
+const logModal = document.getElementById("logModal");
+const logNote = document.getElementById("logNote");
+let pendingSession = null;
+
+function openLogModal() {
+  logNote.value = "";
+  logModal.classList.remove("is-hidden");
+  logNote.focus();
+}
+function closeLogModal() {
+  logModal.classList.add("is-hidden");
+}
+
+document.getElementById("skipLog").addEventListener("click", () => {
+  if (pendingSession) Store.addSession({ ...pendingSession, note: "" });
+  pendingSession = null;
+  closeLogModal();
+});
+
+document.getElementById("saveLog").addEventListener("click", () => {
+  if (pendingSession) Store.addSession({ ...pendingSession, note: logNote.value.trim() });
+  pendingSession = null;
+  closeLogModal();
+});
+
+/* ---------------------------------------------------------------
+   Todos
+--------------------------------------------------------------- */
+const todoForm = document.getElementById("todoForm");
+const todoTextInput = document.getElementById("todoText");
+const todoMinsInput = document.getElementById("todoMins");
+const todoListEl = document.getElementById("todoList");
+
+todoForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const text = todoTextInput.value.trim();
+  if (!text) return;
+  Store.addTodo({ text, estMinutes: todoMinsInput.value });
+  todoTextInput.value = "";
+  todoMinsInput.value = 25;
+  renderTodos();
+  refreshTodoAttachOptions();
+});
+
+function renderTodos() {
+  const todos = Store.getTodos().slice().sort((a, b) => a.done - b.done || b.createdAt - a.createdAt);
+  todoListEl.innerHTML = "";
+  if (todos.length === 0) {
+    todoListEl.innerHTML = `<li class="empty-note">Nothing on the list yet. Add something small — it counts.</li>`;
+    return;
+  }
+  for (const todo of todos) {
+    const li = document.createElement("li");
+    li.className = "todo-item" + (todo.done ? " is-done" : "");
+    li.innerHTML = `
+      <div class="todo-row">
+        <button class="todo-check" aria-label="Mark done"></button>
+        <span class="todo-text">${escapeHTML(todo.text)}</span>
+        <span class="todo-meta">${todo.estMinutes} min</span>
+        <div class="todo-actions">
+          <button class="btn-suggest">Suggest a time</button>
+          <button class="btn-delete">Remove</button>
+        </div>
+      </div>
+      <div class="suggestions-mount"></div>
+    `;
+    li.querySelector(".todo-check").addEventListener("click", () => {
+      Store.updateTodo(todo.id, { done: !todo.done });
+      renderTodos();
+      refreshTodoAttachOptions();
+    });
+    li.querySelector(".btn-delete").addEventListener("click", () => {
+      Store.deleteTodo(todo.id);
+      renderTodos();
+      refreshTodoAttachOptions();
+    });
+    li.querySelector(".btn-suggest").addEventListener("click", () => {
+      renderSuggestions(li, todo);
+    });
+
+    if (todo.suggestedSlots && todo.suggestedSlots.length) {
+      renderSuggestions(li, todo, true);
+    }
+
+    todoListEl.appendChild(li);
+  }
+}
+
+function renderSuggestions(li, todo, silentReuse) {
+  const mount = li.querySelector(".suggestions-mount");
+  const result = silentReuse && todo.suggestedSlots.length
+    ? { slots: todo.suggestedSlots, confident: true }
+    : suggestSlots(Store.getSessions(), Store.getTodos(), todo.estMinutes);
+
+  if (!silentReuse) {
+    Store.updateTodo(todo.id, { suggestedSlots: result.slots });
+  }
+
+  const note = result.confident
+    ? "Based on when you've actually focused before:"
+    : "Not much history yet, so these are gentle general defaults:";
+
+  mount.innerHTML = `
+    <div class="suggestions">
+      <div class="suggestion-note">${note}</div>
+      ${result.slots.map((s) => `<button class="suggestion-slot" data-date="${s.dateISO}" data-hour="${s.hour}">${s.label}</button>`).join("")}
+    </div>
+  `;
+
+  mount.querySelectorAll(".suggestion-slot").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      btn.textContent = `Planned for ${btn.textContent}`;
+      btn.disabled = true;
+    });
+  });
+}
+
+function refreshTodoAttachOptions() {
+  const todos = Store.getTodos().filter((t) => !t.done);
+  attachTodo.innerHTML = `<option value="">Just want to focus — no specific task</option>`;
+  for (const t of todos) {
+    const opt = document.createElement("option");
+    opt.value = t.id;
+    opt.textContent = t.text;
+    attachTodo.appendChild(opt);
+  }
+}
+
+function escapeHTML(str) {
+  const div = document.createElement("div");
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+document.addEventListener("tide:todos-changed", refreshTodoAttachOptions);
+document.addEventListener("tide:sessions-changed", () => {
+  if (document.getElementById("view-week").classList.contains("is-active")) renderWeek();
+});
+
+/* ---------------------------------------------------------------
+   Week review
+--------------------------------------------------------------- */
+const weekChart = document.getElementById("weekChart");
+const weekTotal = document.getElementById("weekTotal");
+const dayLog = document.getElementById("dayLog");
+
+function renderWeek() {
+  const sessions = Store.getSessions();
+  const today = new Date();
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    days.push(d);
+  }
+
+  const byDate = {};
+  for (const s of sessions) {
+    byDate[s.dateISO] = byDate[s.dateISO] || [];
+    byDate[s.dateISO].push(s);
+  }
+
+  const maxMinutes = Math.max(
+    60,
+    ...days.map((d) => sumMinutes(byDate[isoOf(d)] || []))
+  );
+
+  weekChart.innerHTML = "";
+  let weekMinutes = 0;
+  for (const d of days) {
+    const iso = isoOf(d);
+    const mins = sumMinutes(byDate[iso] || []);
+    weekMinutes += mins;
+    const heightPct = Math.max(4, (mins / maxMinutes) * 100);
+    const isToday = iso === isoOf(today);
+    const wrap = document.createElement("div");
+    wrap.className = "week-bar-wrap";
+    wrap.innerHTML = `
+      <div class="week-bar-value">${mins ? mins + "m" : ""}</div>
+      <div class="week-bar${isToday ? " is-today" : ""}" style="height:${heightPct}%"></div>
+      <div class="week-bar-label">${d.toLocaleDateString(undefined, { weekday: "short" })}</div>
+    `;
+    weekChart.appendChild(wrap);
+  }
+
+  const h = Math.floor(weekMinutes / 60);
+  const m = weekMinutes % 60;
+  weekTotal.innerHTML = `<strong>${h}h ${m}m</strong> focused this week — however that happened.`;
+
+  dayLog.innerHTML = "";
+  for (const d of [...days].reverse()) {
+    const iso = isoOf(d);
+    const list = (byDate[iso] || []).slice().sort((a, b) => a.startISO.localeCompare(b.startISO));
+    const group = document.createElement("div");
+    group.className = "day-group";
+    group.innerHTML = `<h4>${d.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })}</h4>`;
+    if (list.length === 0) {
+      group.innerHTML += `<div class="empty-note">Nothing logged.</div>`;
+    } else {
+      for (const s of list) {
+        const row = document.createElement("div");
+        row.className = "session-row";
+        const label = s.label || s.note || "Focused time";
+        row.innerHTML = `<span class="session-note">${escapeHTML(label)}</span><span class="session-dur">${s.durationMin}m</span>`;
+        group.appendChild(row);
+      }
+    }
+    dayLog.appendChild(group);
+  }
+}
+
+function sumMinutes(list) { return list.reduce((sum, s) => sum + s.durationMin, 0); }
+function isoOf(d) { return d.toISOString().slice(0, 10); }
+
+/* ---------------------------------------------------------------
+   Sync / settings
+--------------------------------------------------------------- */
+const syncIndicator = document.getElementById("syncIndicator");
+const syncLabel = syncIndicator.querySelector(".sync-label");
+const googleSignIn = document.getElementById("googleSignIn");
+const firebaseStatus = document.getElementById("firebaseStatus");
+
+Sync.init({
+  onStatusChange: ({ state, reason, user }) => {
+    if (state === "synced") {
+      syncIndicator.classList.add("is-synced");
+      syncLabel.textContent = `Synced as ${user.displayName || user.email}`;
+      googleSignIn.textContent = "Sign out";
+      firebaseStatus.textContent = "";
+    } else {
+      syncIndicator.classList.remove("is-synced");
+      syncLabel.textContent = "Saved on this device";
+      googleSignIn.textContent = "Sign in with Google";
+      if (reason === "not-configured") {
+        firebaseStatus.textContent = "Sync isn't set up yet — edit firebase-config.js to enable it (see README).";
+        googleSignIn.disabled = true;
+      } else if (reason === "init-error") {
+        firebaseStatus.textContent = "Couldn't reach Firebase — check your config values and internet connection.";
+      }
+    }
+  },
+});
+
+googleSignIn.addEventListener("click", async () => {
+  if (Sync.currentUser()) {
+    await Sync.signOut();
+  } else {
+    try {
+      await Sync.signIn();
+    } catch (err) {
+      firebaseStatus.textContent = "Sign-in didn't go through. Double check firebase-config.js and that Google sign-in is enabled in your Firebase project.";
+    }
+  }
+});
+
+/* ---------------------------------------------------------------
+   Initial render
+--------------------------------------------------------------- */
+refreshTodoAttachOptions();
+renderTodos();
+
+</script>
 </body>
 </html>
