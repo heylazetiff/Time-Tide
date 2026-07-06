@@ -318,35 +318,6 @@ h1 {
   .time-readout { font-size: 36px; }
 }
 
-/* ---------- Motivation image (in log modal) ---------- */
-.motivation-img {
-  width: 100%;
-  max-height: 220px;
-  object-fit: cover;
-  border-radius: 14px;
-  margin-bottom: 16px;
-}
-
-/* ---------- Motivation photo manager (Settings) ---------- */
-.photo-section { margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--line); }
-.photo-section h3 { margin: 0 0 6px; font-size: 15px; }
-#photoUpload { margin: 12px 0; font-size: 13px; }
-.photo-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-  gap: 10px;
-  margin-top: 10px;
-}
-.photo-thumb { position: relative; border-radius: 10px; overflow: hidden; aspect-ratio: 1; }
-.photo-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.photo-thumb button {
-  position: absolute; top: 4px; right: 4px;
-  width: 20px; height: 20px; border-radius: 50%;
-  border: none; background: rgba(43,51,47,0.7); color: white;
-  font-size: 12px; line-height: 1; cursor: pointer;
-}
-.photo-empty { font-size: 13px; color: var(--ink-muted); font-style: italic; }
-
 </style>
 </head>
 <body>
@@ -431,7 +402,6 @@ h1 {
     <!-- LOG MODAL -->
     <div class="modal-backdrop is-hidden" id="logModal">
       <div class="modal">
-        <img id="motivationImg" class="motivation-img is-hidden" alt="" />
         <h2>Time's gathered.</h2>
         <p class="modal-sub">What did that stretch go toward? No judgment either way.</p>
         <textarea id="logNote" placeholder="e.g. drafted the intro section, or honestly mostly stared at it"></textarea>
@@ -487,17 +457,6 @@ h1 {
           <h3>First time setting this up?</h3>
           <p>See <code>README.md</code> in the project for the 5-minute, free, one-time Firebase setup. Until then, Tide works fully offline on this device — nothing is lost.</p>
         </div>
-
-        <div class="photo-section">
-          <h3>Motivation photos</h3>
-          <p class="fine-print">
-            Add your own images or gifs — after each timer session, one shows up at random to cheer
-            you on. These stay saved only in this browser (never synced, never uploaded anywhere,
-            never part of the site's code), so it's fine to use personal images here.
-          </p>
-          <input type="file" id="photoUpload" accept="image/*" multiple />
-          <div class="photo-grid" id="photoGrid"></div>
-        </div>
       </div>
     </section>
 
@@ -510,14 +469,14 @@ h1 {
 // Leave as-is and the app runs fully offline on local storage. See the setup guide
 // further down this file / in the Sync tab for step-by-step instructions.
 const firebaseConfig = {
-  apiKey: "AIzaSyB3RuWhDSrT3IFZg7-HyRvQjeX2lref_3I",
+  apiKey: "YOUR_API_KEY",
   authDomain: "YOUR_PROJECT.firebaseapp.com",
   projectId: "YOUR_PROJECT_ID",
   storageBucket: "YOUR_PROJECT.appspot.com",
   messagingSenderId: "YOUR_SENDER_ID",
   appId: "YOUR_APP_ID",
 };
-const isConfigured = firebaseConfig.apiKey !== "AIzaSyB3RuWhDSrT3IFZg7-HyRvQjeX2lref_3I";
+const isConfigured = firebaseConfig.apiKey !== "YOUR_API_KEY";
 // storage.js — local-first data layer.
 // Everything reads/writes localStorage instantly. Firebase (sync.js) mirrors
 // this in the background when the user signs in — the app never blocks on network.
@@ -525,7 +484,6 @@ const isConfigured = firebaseConfig.apiKey !== "AIzaSyB3RuWhDSrT3IFZg7-HyRvQjeX2
 const KEYS = {
   sessions: "tide.sessions",
   todos: "tide.todos",
-  photos: "tide.photos",
 };
 
 function uid() {
@@ -546,29 +504,6 @@ function writeAll(key, arr) {
 }
 
 const Store = {
-  // ---- Motivation photos (kept local-only, never synced or committed to any repo) ----
-  getPhotos() {
-    return readAll(KEYS.photos);
-  },
-  addPhoto(dataUrl) {
-    const photos = readAll(KEYS.photos);
-    const record = { id: uid(), dataUrl };
-    photos.push(record);
-    writeAll(KEYS.photos, photos);
-    document.dispatchEvent(new CustomEvent("tide:photos-changed"));
-    return record;
-  },
-  deletePhoto(id) {
-    const photos = readAll(KEYS.photos).filter((p) => p.id !== id);
-    writeAll(KEYS.photos, photos);
-    document.dispatchEvent(new CustomEvent("tide:photos-changed"));
-  },
-  randomPhoto() {
-    const photos = readAll(KEYS.photos);
-    if (!photos.length) return null;
-    return photos[Math.floor(Math.random() * photos.length)];
-  },
-
   // ---- Sessions ----
   getSessions() {
     return readAll(KEYS.sessions);
@@ -1048,19 +983,10 @@ setDuration(25);
 --------------------------------------------------------------- */
 const logModal = document.getElementById("logModal");
 const logNote = document.getElementById("logNote");
-const motivationImg = document.getElementById("motivationImg");
 let pendingSession = null;
 
 function openLogModal() {
   logNote.value = "";
-  const photo = Store.randomPhoto();
-  if (photo) {
-    motivationImg.src = photo.dataUrl;
-    motivationImg.classList.remove("is-hidden");
-  } else {
-    motivationImg.classList.add("is-hidden");
-    motivationImg.src = "";
-  }
   logModal.classList.remove("is-hidden");
   logNote.focus();
 }
@@ -1268,45 +1194,6 @@ function renderWeek() {
 
 function sumMinutes(list) { return list.reduce((sum, s) => sum + s.durationMin, 0); }
 function isoOf(d) { return d.toISOString().slice(0, 10); }
-
-/* ---------------------------------------------------------------
-   Motivation photos
---------------------------------------------------------------- */
-const photoUpload = document.getElementById("photoUpload");
-const photoGrid = document.getElementById("photoGrid");
-
-photoUpload.addEventListener("change", () => {
-  const files = Array.from(photoUpload.files || []);
-  for (const file of files) {
-    const reader = new FileReader();
-    reader.onload = () => {
-      Store.addPhoto(reader.result);
-      renderPhotoGrid();
-    };
-    reader.readAsDataURL(file);
-  }
-  photoUpload.value = "";
-});
-
-function renderPhotoGrid() {
-  const photos = Store.getPhotos();
-  photoGrid.innerHTML = "";
-  if (!photos.length) {
-    photoGrid.innerHTML = `<div class="photo-empty">No photos added yet.</div>`;
-    return;
-  }
-  for (const p of photos) {
-    const div = document.createElement("div");
-    div.className = "photo-thumb";
-    div.innerHTML = `<img src="${p.dataUrl}" alt="" /><button aria-label="Remove">×</button>`;
-    div.querySelector("button").addEventListener("click", () => {
-      Store.deletePhoto(p.id);
-      renderPhotoGrid();
-    });
-    photoGrid.appendChild(div);
-  }
-}
-renderPhotoGrid();
 
 /* ---------------------------------------------------------------
    Sync / settings
