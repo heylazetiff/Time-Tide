@@ -640,7 +640,7 @@ const Store = {
   deleteTodo(id) {
     const todos = readAll(KEYS.todos).filter((t) => t.id !== id);
     writeAll(KEYS.todos, todos);
-    document.dispatchEvent(new CustomEvent("tide:todos-changed"));
+    document.dispatchEvent(new CustomEvent("tide:todos-changed", { detail: { deletedId: id } }));
   },
   replaceAllTodos(todos) {
     writeAll(KEYS.todos, todos);
@@ -872,7 +872,11 @@ const Sync = {
 
     // Push any local record up (covers first sign-in with existing local data).
     document.addEventListener("tide:sessions-changed", () => this._pushAll("sessions", Store.getSessions()));
-    document.addEventListener("tide:todos-changed", () => this._pushAll("todos", Store.getTodos()));
+    document.addEventListener("tide:todos-changed", (e) => {
+      this._pushAll("todos", Store.getTodos());
+      const deletedId = e.detail && e.detail.deletedId;
+      if (deletedId) this._deleteRemote("todos", deletedId);
+    });
     document.addEventListener("tide:photos-changed", (e) => {
       this._pushAll("photos", Store.getPhotos());
       const deletedId = e.detail && e.detail.deletedId;
@@ -995,6 +999,18 @@ customChip.addEventListener("click", () => {
   const val = prompt("Custom length in minutes:", selectedMinutes);
   const n = parseInt(val, 10);
   if (n && n > 0 && n <= 240) setDuration(n);
+});
+
+// Selecting a task to work on adopts that task's estimated length as the
+// session duration, so the ring reflects the time actually planned for it.
+attachTodo.addEventListener("change", () => {
+  if (isRunning || isPaused) return;
+  const id = attachTodo.value;
+  if (!id) return;
+  const todo = Store.getTodos().find((t) => t.id === id);
+  if (todo && todo.estMinutes) {
+    setDuration(todo.estMinutes);
+  }
 });
 
 function updateRing() {
@@ -1151,14 +1167,15 @@ function renderTodos() {
   for (const todo of todos) {
     const li = document.createElement("li");
     li.className = "todo-item" + (todo.done ? " is-done" : "");
+    li.dataset.id = todo.id;
     li.innerHTML = `
       <div class="todo-row">
-        <button class="todo-check" aria-label="Mark done"></button>
+        <button class="todo-check" aria-label="Mark done" type="button"></button>
         <span class="todo-text">${escapeHTML(todo.text)}</span>
         <span class="todo-meta">${todo.estMinutes} min</span>
         <div class="todo-actions">
-          <button class="btn-suggest">Suggest a time</button>
-          <button class="btn-delete">Remove</button>
+          <button class="btn-suggest" type="button">Suggest a time</button>
+          <button class="btn-delete" type="button">Remove</button>
         </div>
       </div>
       <div class="suggestions-mount"></div>
@@ -1202,7 +1219,7 @@ function renderSuggestions(li, todo, silentReuse) {
   mount.innerHTML = `
     <div class="suggestions">
       <div class="suggestion-note">${note}</div>
-      ${result.slots.map((s) => `<button class="suggestion-slot" data-date="${s.dateISO}" data-hour="${s.hour}">${s.label}</button>`).join("")}
+      ${result.slots.map((s) => `<button type="button" class="suggestion-slot" data-date="${s.dateISO}" data-hour="${s.hour}">${s.label}</button>`).join("")}
     </div>
   `;
 
@@ -1216,6 +1233,7 @@ function renderSuggestions(li, todo, silentReuse) {
 
 function refreshTodoAttachOptions() {
   const todos = Store.getTodos().filter((t) => !t.done);
+  const previousValue = attachTodo.value;
   attachTodo.innerHTML = `<option value="">Just want to focus — no specific task</option>`;
   for (const t of todos) {
     const opt = document.createElement("option");
@@ -1223,6 +1241,10 @@ function refreshTodoAttachOptions() {
     opt.textContent = t.text;
     attachTodo.appendChild(opt);
   }
+  // If the previously selected task no longer exists (done or deleted),
+  // fall back to "no specific task" instead of silently pointing at nothing.
+  const stillExists = todos.some((t) => t.id === previousValue);
+  attachTodo.value = stillExists ? previousValue : "";
 }
 
 function escapeHTML(str) {
@@ -1383,7 +1405,7 @@ function renderPhotoGrid() {
     const skippedBadge = skippedSyncPhotoIds.has(p.id)
       ? `<span class="photo-local-badge" title="Too large to sync — stays on this device only">Local only</span>`
       : "";
-    div.innerHTML = `<img src="${p.dataUrl}" alt="" />${skippedBadge}<button aria-label="Remove">×</button>`;
+    div.innerHTML = `<img src="${p.dataUrl}" alt="" />${skippedBadge}<button type="button" aria-label="Remove">×</button>`;
     div.querySelector("button").addEventListener("click", () => {
       Store.deletePhoto(p.id);
       skippedSyncPhotoIds.delete(p.id);
