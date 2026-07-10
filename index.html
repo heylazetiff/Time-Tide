@@ -226,13 +226,37 @@ h1 {
 .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
 
 /* ---------- Todos ---------- */
-.todo-form { display: flex; gap: 10px; margin-bottom: 24px; }
+.todo-form { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; }
 .todo-form input[type="text"] {
-  flex: 1; padding: 12px 14px; border-radius: 10px; border: 1.5px solid var(--line); font-size: 14px;
+  flex: 1 1 200px; padding: 12px 14px; border-radius: 10px; border: 1.5px solid var(--line); font-size: 14px;
 }
 .todo-form input[type="number"] {
   width: 80px; padding: 12px 10px; border-radius: 10px; border: 1.5px solid var(--line); font-size: 14px;
 }
+.todo-form input[type="date"],
+.todo-form input[type="time"] {
+  padding: 12px 10px; border-radius: 10px; border: 1.5px solid var(--line); font-size: 13px; color: var(--ink);
+  font-family: inherit;
+}
+.todo-form select {
+  padding: 12px 10px; border-radius: 10px; border: 1.5px solid var(--line); font-size: 13px;
+  color: var(--ink); background: var(--surface); font-family: inherit;
+}
+
+.todo-filter-bar {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  margin-bottom: 14px; flex-wrap: wrap;
+}
+.todo-filter-bar select {
+  padding: 8px 10px; border-radius: 999px; border: 1.5px solid var(--line);
+  font-size: 13px; color: var(--ink-muted); background: var(--surface); font-family: inherit;
+}
+.btn-clear-completed {
+  background: var(--bg); color: var(--ink-muted);
+  font-size: 12.5px; padding: 8px 14px; border-radius: 999px; cursor: pointer;
+  border: 1.5px solid var(--line);
+}
+.btn-clear-completed:hover { border-color: var(--sage-light); color: var(--sage-dark); }
 
 .todo-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 
@@ -244,15 +268,23 @@ h1 {
 .todo-item.is-done { opacity: 0.5; }
 .todo-item.is-done .todo-text { text-decoration: line-through; }
 
-.todo-row { display: flex; align-items: center; gap: 12px; }
+.todo-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .todo-check {
   width: 22px; height: 22px; border-radius: 50%;
   border: 2px solid var(--sage-light);
   cursor: pointer; flex-shrink: 0; background: transparent;
 }
 .todo-item.is-done .todo-check { background: var(--sage); border-color: var(--sage); }
-.todo-text { flex: 1; font-size: 15px; }
-.todo-meta { font-size: 12px; color: var(--ink-muted); }
+.todo-text { flex: 1 1 140px; font-size: 15px; }
+.todo-meta { font-size: 12px; color: var(--ink-muted); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.todo-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11.5px; padding: 3px 9px; border-radius: 999px;
+  background: var(--bg); color: var(--ink-muted); white-space: nowrap;
+}
+.todo-badge.is-schedule { background: var(--honey-light); color: var(--sage-dark); }
+.todo-badge.is-repeat { background: var(--sage-light); color: white; }
+.todo-badge.is-count { background: var(--sage); color: white; font-family: var(--font-mono); }
 .todo-actions { display: flex; gap: 8px; margin-left: auto; }
 .todo-actions button {
   border: none; background: var(--bg); color: var(--sage-dark);
@@ -260,16 +292,27 @@ h1 {
 }
 .todo-actions button:hover { background: var(--sage-light); color: white; }
 
-.suggestions { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--line); display: flex; flex-wrap: wrap; gap: 8px; }
-.suggestion-slot {
-  font-size: 12.5px; padding: 6px 12px; border-radius: 999px;
-  background: var(--honey-light); color: var(--sage-dark);
-  border: none; cursor: pointer;
+.schedule-editor {
+  margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--line);
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
 }
-.suggestion-slot:hover { background: var(--honey); }
-.suggestion-note { font-size: 12px; color: var(--ink-muted); width: 100%; margin-top: 4px; }
+.schedule-editor input[type="date"],
+.schedule-editor input[type="time"],
+.schedule-editor select {
+  padding: 8px 10px; border-radius: 8px; border: 1.5px solid var(--line);
+  font-size: 13px; color: var(--ink); font-family: inherit; background: var(--surface);
+}
+.schedule-editor .btn-save-schedule {
+  border: none; background: var(--sage); color: white;
+  font-size: 12.5px; padding: 8px 14px; border-radius: 999px; cursor: pointer;
+}
+.schedule-editor .btn-save-schedule:hover { background: var(--sage-dark); }
 
 /* ---------- Week view ---------- */
+.week-subhead {
+  font-family: var(--font-display); font-size: 15px; color: var(--sage-dark);
+  margin: 0 0 10px; font-weight: 600;
+}
 .week-chart {
   display: flex; align-items: flex-end; gap: 12px;
   height: 160px; padding: 0 8px 12px;
@@ -290,6 +333,40 @@ h1 {
 
 .week-total { text-align: center; font-size: 14px; color: var(--ink-muted); margin: 6px 0 24px; }
 .week-total strong { color: var(--sage-dark); font-family: var(--font-mono); font-size: 16px; }
+
+/* ---------- Weekly taste (scheduled-by-hour grid) ---------- */
+.week-grid-wrap { margin-bottom: 32px; overflow-x: auto; }
+.week-grid {
+  display: grid;
+  grid-template-columns: 52px repeat(7, minmax(78px, 1fr));
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  min-width: 620px;
+}
+.week-grid-head {
+  font-size: 12px; font-weight: 600; color: var(--sage-dark);
+  text-align: center; padding: 8px 4px; background: var(--bg);
+  border-bottom: 1px solid var(--line); border-left: 1px solid var(--line);
+}
+.week-grid-head.is-today { color: white; background: var(--sage); }
+.week-grid-corner { background: var(--bg); border-bottom: 1px solid var(--line); }
+.week-grid-hour {
+  font-size: 11px; color: var(--ink-muted); font-family: var(--font-mono);
+  padding: 6px 6px 0 0; text-align: right; border-top: 1px solid var(--line);
+}
+.week-grid-cell {
+  min-height: 34px; border-top: 1px solid var(--line); border-left: 1px solid var(--line);
+  padding: 3px; display: flex; flex-direction: column; gap: 2px;
+}
+.week-grid-cell.is-today-col { background: rgba(91, 123, 111, 0.05); }
+.week-grid-chip {
+  font-size: 10.5px; line-height: 1.3; padding: 3px 6px; border-radius: 6px;
+  background: var(--honey-light); color: var(--sage-dark);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.week-grid-chip.is-done { background: var(--sage-light); color: white; text-decoration: line-through; }
+.week-grid-empty-note { font-size: 12px; color: var(--ink-muted); font-style: italic; margin: 8px 2px 24px; }
 
 .day-log { display: flex; flex-direction: column; gap: 18px; }
 .day-group h4 { font-family: var(--font-display); margin: 0 0 8px; color: var(--sage-dark); font-size: 16px; }
@@ -450,13 +527,30 @@ h1 {
     <section class="view" id="view-todos">
       <div class="panel">
         <h1>To-dos</h1>
-        <p class="lede">Add what's on your plate. Tide can suggest a realistic slot for it this week, based on when you actually tend to get things done — not when you think you should.</p>
+        <p class="lede">Add what's on your plate, and pick your own date and time for it — no guesswork, just your calendar.</p>
 
         <form id="todoForm" class="todo-form">
           <input type="text" id="todoText" placeholder="What needs doing?" required />
           <input type="number" id="todoMins" placeholder="mins" min="5" max="240" value="25" />
+          <input type="date" id="todoDate" />
+          <input type="time" id="todoTime" />
+          <select id="todoRepeat">
+            <option value="none">Doesn't repeat</option>
+            <option value="daily">Repeats daily</option>
+            <option value="weekly">Repeats weekly</option>
+            <option value="monthly">Repeats monthly</option>
+          </select>
           <button type="submit" class="btn btn-primary">Add</button>
         </form>
+
+        <div class="todo-filter-bar">
+          <select id="todoFilter">
+            <option value="all">Show all</option>
+            <option value="active">Hide completed</option>
+            <option value="done">Only completed</option>
+          </select>
+          <button type="button" class="btn-clear-completed" id="clearCompleted">Clear completed</button>
+        </div>
 
         <ul class="todo-list" id="todoList"></ul>
       </div>
@@ -466,8 +560,12 @@ h1 {
     <section class="view" id="view-week">
       <div class="panel">
         <h1>This week</h1>
-        <p class="lede">A quiet record of where the time actually went — not a scoreboard.</p>
+        <p class="lede">A weekly taste of what's scheduled, hour by hour — plus a quiet record of where the time actually went.</p>
 
+        <h3 class="week-subhead">Scheduled this week</h3>
+        <div class="week-grid-wrap" id="weekGridWrap"></div>
+
+        <h3 class="week-subhead">Focused time</h3>
         <div class="week-chart" id="weekChart"></div>
 
         <div class="week-total" id="weekTotal"></div>
@@ -613,7 +711,7 @@ const Store = {
   getTodos() {
     return readAll(KEYS.todos);
   },
-  addTodo({ text, estMinutes }) {
+  addTodo({ text, estMinutes, scheduledISO, repeat }) {
     const todos = readAll(KEYS.todos);
     const record = {
       id: uid(),
@@ -622,7 +720,10 @@ const Store = {
       done: false,
       createdAt: Date.now(),
       updatedAt: Date.now(),
-      suggestedSlots: [],
+      scheduledISO: scheduledISO || null, // e.g. "2026-07-15T14:30"
+      repeat: repeat || "none", // "none" | "daily" | "weekly" | "monthly"
+      completedCount: 0,
+      lastCompletedISO: null,
     };
     todos.push(record);
     writeAll(KEYS.todos, todos);
@@ -648,132 +749,61 @@ const Store = {
   },
 };
 
-// suggest.js — a free, local heuristic for "when should I do this?"
-//
-// No API, no model call. It looks at when YOUR past focus sessions actually
-// started (day-of-week + hour), weights recent history more heavily than old
-// history, smooths across neighbouring hours, and proposes open slots in the
-// next 7 days that match your own demonstrated rhythm.
-//
-// If there isn't enough history yet, it falls back to gentle, uncontroversial
-// defaults (mid-morning / early evening) rather than pretending confidence
-// it doesn't have.
+// recurrence.js — small helpers for user-picked scheduling + repeating to-dos.
+// No suggestions, no heuristics — the person picks the date and time themselves
+// from a calendar/time input, and this just knows how to roll a repeating
+// item forward to its next occurrence once it's checked off.
 
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const CANDIDATE_HOURS = [8, 9, 10, 11, 13, 14, 15, 16, 17, 19, 20, 21];
-const MIN_SESSIONS_FOR_CONFIDENCE = 8;
 
-function weekOf(dateISO) {
-  return Math.floor(new Date(dateISO).getTime() / (7 * 24 * 3600 * 1000));
+/** Combine a "YYYY-MM-DD" date input value and "HH:MM" time input value into
+ *  a local ISO-ish string ("YYYY-MM-DDTHH:MM") suitable for storing/sorting.
+ *  Time defaults to 09:00 if left blank. */
+function combineDateTime(dateVal, timeVal) {
+  if (!dateVal) return null;
+  return `${dateVal}T${timeVal || "09:00"}`;
 }
 
-/** Build a score map of "weekday-hour" -> weighted frequency from history. */
-function buildHistogram(sessions) {
-  const now = Date.now();
-  const scores = {};
-  for (const s of sessions) {
-    const started = new Date(s.startISO);
-    if (isNaN(started)) continue;
-    const ageWeeks = (now - started.getTime()) / (7 * 24 * 3600 * 1000);
-    const recencyWeight = 1 / (1 + Math.max(0, ageWeeks) * 0.25); // recent counts more
-    const weekday = started.getDay();
-    const hour = started.getHours();
-    const key = `${weekday}-${hour}`;
-    scores[key] = (scores[key] || 0) + recencyWeight;
-
-    // light smoothing into the adjacent hour on either side
-    const prevKey = `${weekday}-${hour - 1}`;
-    const nextKey = `${weekday}-${hour + 1}`;
-    scores[prevKey] = (scores[prevKey] || 0) + recencyWeight * 0.35;
-    scores[nextKey] = (scores[nextKey] || 0) + recencyWeight * 0.35;
-  }
-  return scores;
-}
-
-function defaultScore(hour) {
-  // Gentle uncontroversial fallback curve when history is thin:
-  // mild preference for mid-morning and early evening, avoids very early/late.
-  if (hour >= 9 && hour <= 11) return 1.0;
-  if (hour >= 19 && hour <= 20) return 0.9;
-  if (hour >= 14 && hour <= 16) return 0.6;
-  return 0.3;
-}
-
-/**
- * @param {Array} sessions - Store.getSessions()
- * @param {Array} existingTodos - other todos, to avoid stacking suggestions on identical slots
- * @param {number} estMinutes
- * @returns {{slots: Array<{dateISO, weekday, hour, label, score}>, confident: boolean}}
- */
-function suggestSlots(sessions, existingTodos, estMinutes) {
-  const confident = sessions.length >= MIN_SESSIONS_FOR_CONFIDENCE;
-  const histogram = buildHistogram(sessions);
-
-  // Slots already suggested-and-kept by other pending todos this week, so we
-  // spread work out rather than piling everything into one "best" hour.
-  const taken = new Set(
-    existingTodos
-      .filter((t) => !t.done)
-      .flatMap((t) => t.suggestedSlots || [])
-      .map((s) => `${s.dateISO}-${s.hour}`)
-  );
-
-  const candidates = [];
-  const today = new Date();
-  for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
-    const d = new Date(today);
-    d.setDate(d.getDate() + dayOffset);
-    const weekday = d.getDay();
-    const dateISO = d.toISOString().slice(0, 10);
-
-    for (const hour of CANDIDATE_HOURS) {
-      // skip slots in the past today
-      if (dayOffset === 0 && hour <= today.getHours()) continue;
-
-      const key = `${dateISO}-${hour}`;
-      if (taken.has(key)) continue;
-
-      const historyScore = histogram[`${weekday}-${hour}`] || 0;
-      const score = confident
-        ? historyScore + defaultScore(hour) * 0.15
-        : defaultScore(hour) + historyScore * 0.3;
-
-      candidates.push({ dateISO, weekday, hour, score });
-    }
-  }
-
-  candidates.sort((a, b) => b.score - a.score || a.dateISO.localeCompare(b.dateISO));
-
-  // Take top slots but keep them on different days where possible, so the
-  // suggestion is "spread across your week" rather than 3 slots on one day.
-  const chosen = [];
-  const usedDays = new Set();
-  for (const c of candidates) {
-    if (chosen.length >= 3) break;
-    if (usedDays.has(c.dateISO) && chosen.length < 2) continue;
-    chosen.push(c);
-    usedDays.add(c.dateISO);
-  }
-  if (chosen.length < 3) {
-    for (const c of candidates) {
-      if (chosen.length >= 3) break;
-      if (!chosen.includes(c)) chosen.push(c);
-    }
-  }
-
-  const label = (c) => {
-    const d = new Date(c.dateISO + "T00:00:00");
-    const dayLabel = DAY_NAMES[c.weekday];
-    const hour12 = c.hour % 12 === 0 ? 12 : c.hour % 12;
-    const ampm = c.hour < 12 ? "am" : "pm";
-    return `${dayLabel} ${hour12}${ampm}`;
+/** Given a stored "YYYY-MM-DDTHH:MM" scheduledISO and a repeat rule, return
+ *  the next occurrence's scheduledISO, moved forward from *today* if the
+ *  original date has already passed (so a missed daily/weekly item doesn't
+ *  stay stuck in the past). */
+function nextOccurrence(scheduledISO, repeat) {
+  if (!scheduledISO || repeat === "none") return scheduledISO;
+  const [datePart, timePart] = scheduledISO.split("T");
+  let d = new Date(datePart + "T00:00:00");
+  const step = () => {
+    if (repeat === "daily") d.setDate(d.getDate() + 1);
+    else if (repeat === "weekly") d.setDate(d.getDate() + 7);
+    else if (repeat === "monthly") d.setMonth(d.getMonth() + 1);
   };
+  step();
+  // If that's still in the past (e.g. the task sat unchecked a while), keep
+  // stepping until it's today or later.
+  const todayMidnight = new Date();
+  todayMidnight.setHours(0, 0, 0, 0);
+  let guard = 0;
+  while (d < todayMidnight && guard < 366) {
+    step();
+    guard++;
+  }
+  return `${d.toISOString().slice(0, 10)}T${timePart || "09:00"}`;
+}
 
-  return {
-    confident,
-    estMinutes,
-    slots: chosen.map((c) => ({ ...c, label: label(c) })),
-  };
+function formatScheduled(scheduledISO) {
+  if (!scheduledISO) return "";
+  const [datePart, timePart] = scheduledISO.split("T");
+  const d = new Date(datePart + "T00:00:00");
+  const dayLabel = DAY_NAMES[d.getDay()];
+  const monthDay = d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  let hourLabel = "";
+  if (timePart) {
+    const [h, m] = timePart.split(":").map(Number);
+    const hour12 = h % 12 === 0 ? 12 : h % 12;
+    const ampm = h < 12 ? "am" : "pm";
+    hourLabel = ` · ${hour12}${m ? ":" + String(m).padStart(2, "0") : ""}${ampm}`;
+  }
+  return `${dayLabel} ${monthDay}${hourLabel}`;
 }
 // sync.js — optional cross-device sync via the user's own free Firebase project.
 // The app works fully offline without this; when configured, it layers on top:
@@ -1144,90 +1174,159 @@ document.getElementById("saveLog").addEventListener("click", () => {
 const todoForm = document.getElementById("todoForm");
 const todoTextInput = document.getElementById("todoText");
 const todoMinsInput = document.getElementById("todoMins");
+const todoDateInput = document.getElementById("todoDate");
+const todoTimeInput = document.getElementById("todoTime");
+const todoRepeatInput = document.getElementById("todoRepeat");
 const todoListEl = document.getElementById("todoList");
+const todoFilterEl = document.getElementById("todoFilter");
+const clearCompletedBtn = document.getElementById("clearCompleted");
 
 todoForm.addEventListener("submit", (e) => {
   e.preventDefault();
   const text = todoTextInput.value.trim();
   if (!text) return;
-  Store.addTodo({ text, estMinutes: todoMinsInput.value });
+  Store.addTodo({
+    text,
+    estMinutes: todoMinsInput.value,
+    scheduledISO: combineDateTime(todoDateInput.value, todoTimeInput.value),
+    repeat: todoRepeatInput.value,
+  });
   todoTextInput.value = "";
   todoMinsInput.value = 25;
+  todoDateInput.value = "";
+  todoTimeInput.value = "";
+  todoRepeatInput.value = "none";
+  renderTodos();
+  refreshTodoAttachOptions();
+});
+
+todoFilterEl.addEventListener("change", renderTodos);
+
+clearCompletedBtn.addEventListener("click", () => {
+  // Only clears todos that are truly finished (non-repeating, done). Repeating
+  // items never sit in a permanent "done" state, so they're untouched here —
+  // this button is about clearing clutter, not deleting live recurring tasks.
+  const toRemove = Store.getTodos().filter((t) => t.done && t.repeat === "none");
+  for (const t of toRemove) Store.deleteTodo(t.id);
   renderTodos();
   refreshTodoAttachOptions();
 });
 
 function renderTodos() {
-  const todos = Store.getTodos().slice().sort((a, b) => a.done - b.done || b.createdAt - a.createdAt);
+  const filter = todoFilterEl.value;
+  let todos = Store.getTodos().slice().sort((a, b) => a.done - b.done || b.createdAt - a.createdAt);
+
+  if (filter === "active") todos = todos.filter((t) => !t.done);
+  else if (filter === "done") todos = todos.filter((t) => t.done);
+
   todoListEl.innerHTML = "";
   if (todos.length === 0) {
-    todoListEl.innerHTML = `<li class="empty-note">Nothing on the list yet. Add something small — it counts.</li>`;
+    todoListEl.innerHTML = `<li class="empty-note">Nothing here. Add something small — it counts.</li>`;
     return;
   }
   for (const todo of todos) {
     const li = document.createElement("li");
     li.className = "todo-item" + (todo.done ? " is-done" : "");
     li.dataset.id = todo.id;
+
+    const badges = [`<span class="todo-badge">${todo.estMinutes} min</span>`];
+    if (todo.scheduledISO) {
+      badges.push(`<span class="todo-badge is-schedule">${formatScheduled(todo.scheduledISO)}</span>`);
+    }
+    if (todo.repeat && todo.repeat !== "none") {
+      badges.push(`<span class="todo-badge is-repeat">↻ ${todo.repeat}</span>`);
+    }
+    if (todo.completedCount > 0) {
+      badges.push(`<span class="todo-badge is-count">✓ ×${todo.completedCount}</span>`);
+    }
+
     li.innerHTML = `
       <div class="todo-row">
         <button class="todo-check" aria-label="Mark done" type="button"></button>
         <span class="todo-text">${escapeHTML(todo.text)}</span>
-        <span class="todo-meta">${todo.estMinutes} min</span>
+        <span class="todo-meta">${badges.join("")}</span>
         <div class="todo-actions">
-          <button class="btn-suggest" type="button">Suggest a time</button>
+          <button class="btn-edit-schedule" type="button">Edit time</button>
           <button class="btn-delete" type="button">Remove</button>
         </div>
       </div>
-      <div class="suggestions-mount"></div>
+      <div class="schedule-editor-mount"></div>
     `;
     li.querySelector(".todo-check").addEventListener("click", () => {
-      Store.updateTodo(todo.id, { done: !todo.done });
-      renderTodos();
-      refreshTodoAttachOptions();
+      toggleTodoDone(todo);
     });
     li.querySelector(".btn-delete").addEventListener("click", () => {
       Store.deleteTodo(todo.id);
       renderTodos();
       refreshTodoAttachOptions();
     });
-    li.querySelector(".btn-suggest").addEventListener("click", () => {
-      renderSuggestions(li, todo);
+    li.querySelector(".btn-edit-schedule").addEventListener("click", () => {
+      renderScheduleEditor(li, todo);
     });
-
-    if (todo.suggestedSlots && todo.suggestedSlots.length) {
-      renderSuggestions(li, todo, true);
-    }
 
     todoListEl.appendChild(li);
   }
 }
 
-function renderSuggestions(li, todo, silentReuse) {
-  const mount = li.querySelector(".suggestions-mount");
-  const result = silentReuse && todo.suggestedSlots.length
-    ? { slots: todo.suggestedSlots, confident: true }
-    : suggestSlots(Store.getSessions(), Store.getTodos(), todo.estMinutes);
-
-  if (!silentReuse) {
-    Store.updateTodo(todo.id, { suggestedSlots: result.slots });
+function toggleTodoDone(todo) {
+  if (todo.repeat && todo.repeat !== "none" && !todo.done) {
+    // Repeating item: log a completion, roll it forward to its next
+    // occurrence, and keep it active rather than parking it as "done".
+    Store.updateTodo(todo.id, {
+      completedCount: (todo.completedCount || 0) + 1,
+      lastCompletedISO: new Date().toISOString(),
+      scheduledISO: nextOccurrence(todo.scheduledISO, todo.repeat),
+      done: false,
+    });
+  } else if (todo.repeat && todo.repeat !== "none" && todo.done) {
+    // Shouldn't normally happen (repeating items don't stay "done"), but
+    // handle it gracefully if it's ever toggled back.
+    Store.updateTodo(todo.id, { done: false });
+  } else {
+    const nowDone = !todo.done;
+    Store.updateTodo(todo.id, {
+      done: nowDone,
+      completedCount: nowDone ? (todo.completedCount || 0) + 1 : Math.max(0, (todo.completedCount || 0) - 1),
+      lastCompletedISO: nowDone ? new Date().toISOString() : todo.lastCompletedISO,
+    });
   }
+  renderTodos();
+  refreshTodoAttachOptions();
+}
 
-  const note = result.confident
-    ? "Based on when you've actually focused before:"
-    : "Not much history yet, so these are gentle general defaults:";
-
+function renderScheduleEditor(li, todo) {
+  const mount = li.querySelector(".schedule-editor-mount");
+  if (mount.dataset.open === "true") {
+    mount.innerHTML = "";
+    mount.dataset.open = "false";
+    return;
+  }
+  const [datePart, timePart] = (todo.scheduledISO || "").split("T");
+  mount.dataset.open = "true";
   mount.innerHTML = `
-    <div class="suggestions">
-      <div class="suggestion-note">${note}</div>
-      ${result.slots.map((s) => `<button type="button" class="suggestion-slot" data-date="${s.dateISO}" data-hour="${s.hour}">${s.label}</button>`).join("")}
+    <div class="schedule-editor">
+      <input type="date" class="edit-date" value="${datePart || ""}" />
+      <input type="time" class="edit-time" value="${timePart || ""}" />
+      <select class="edit-repeat">
+        <option value="none">Doesn't repeat</option>
+        <option value="daily">Repeats daily</option>
+        <option value="weekly">Repeats weekly</option>
+        <option value="monthly">Repeats monthly</option>
+      </select>
+      <button type="button" class="btn-save-schedule">Save</button>
     </div>
   `;
-
-  mount.querySelectorAll(".suggestion-slot").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      btn.textContent = `Planned for ${btn.textContent}`;
-      btn.disabled = true;
+  mount.querySelector(".edit-repeat").value = todo.repeat || "none";
+  mount.querySelector(".btn-save-schedule").addEventListener("click", () => {
+    const dateVal = mount.querySelector(".edit-date").value;
+    const timeVal = mount.querySelector(".edit-time").value;
+    const repeatVal = mount.querySelector(".edit-repeat").value;
+    Store.updateTodo(todo.id, {
+      scheduledISO: combineDateTime(dateVal, timeVal),
+      repeat: repeatVal,
     });
+    renderTodos();
+    if (document.getElementById("view-week").classList.contains("is-active")) renderWeekGrid();
   });
 }
 
@@ -1254,6 +1353,9 @@ function escapeHTML(str) {
 }
 
 document.addEventListener("tide:todos-changed", refreshTodoAttachOptions);
+document.addEventListener("tide:todos-changed", () => {
+  if (document.getElementById("view-week").classList.contains("is-active")) renderWeekGrid();
+});
 document.addEventListener("tide:sessions-changed", () => {
   if (document.getElementById("view-week").classList.contains("is-active")) renderWeek();
 });
@@ -1264,8 +1366,72 @@ document.addEventListener("tide:sessions-changed", () => {
 const weekChart = document.getElementById("weekChart");
 const weekTotal = document.getElementById("weekTotal");
 const dayLog = document.getElementById("dayLog");
+const weekGridWrap = document.getElementById("weekGridWrap");
+const GRID_HOURS = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22];
+
+/** "Weekly taste": a Mon–Sun grid showing scheduled to-dos in the hour slot
+ *  they're scheduled for, so you can see the shape of the week at a glance. */
+function renderWeekGrid() {
+  const todos = Store.getTodos().filter((t) => t.scheduledISO);
+  const today = new Date();
+  const todayIso = isoOf(today);
+
+  // Build Mon–Sun for the current week.
+  const mondayOffset = (today.getDay() + 6) % 7; // 0 = Monday
+  const monday = new Date(today);
+  monday.setDate(monday.getDate() - mondayOffset);
+  const days = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday);
+    d.setDate(d.getDate() + i);
+    days.push(d);
+  }
+
+  const byDayHour = {};
+  for (const t of todos) {
+    const [datePart, timePart] = t.scheduledISO.split("T");
+    const hour = timePart ? Number(timePart.split(":")[0]) : 9;
+    const key = `${datePart}-${hour}`;
+    byDayHour[key] = byDayHour[key] || [];
+    byDayHour[key].push(t);
+  }
+
+  const hasAnyThisWeek = days.some((d) =>
+    todos.some((t) => t.scheduledISO.slice(0, 10) === isoOf(d))
+  );
+
+  if (!hasAnyThisWeek) {
+    weekGridWrap.innerHTML = `<div class="week-grid-empty-note">Nothing scheduled this week yet — add a date and time to a to-do to see it here.</div>`;
+    return;
+  }
+
+  let html = `<div class="week-grid">`;
+  html += `<div class="week-grid-corner"></div>`;
+  for (const d of days) {
+    const isToday = isoOf(d) === todayIso;
+    html += `<div class="week-grid-head${isToday ? " is-today" : ""}">${d.toLocaleDateString(undefined, { weekday: "short" })} ${d.getDate()}</div>`;
+  }
+
+  for (const hour of GRID_HOURS) {
+    const hour12 = hour % 12 === 0 ? 12 : hour % 12;
+    const ampm = hour < 12 ? "am" : "pm";
+    html += `<div class="week-grid-hour">${hour12}${ampm}</div>`;
+    for (const d of days) {
+      const iso = isoOf(d);
+      const isToday = iso === todayIso;
+      const items = byDayHour[`${iso}-${hour}`] || [];
+      const chips = items
+        .map((t) => `<span class="week-grid-chip${t.done ? " is-done" : ""}" title="${escapeHTML(t.text)}">${escapeHTML(t.text)}</span>`)
+        .join("");
+      html += `<div class="week-grid-cell${isToday ? " is-today-col" : ""}">${chips}</div>`;
+    }
+  }
+  html += `</div>`;
+  weekGridWrap.innerHTML = html;
+}
 
 function renderWeek() {
+  renderWeekGrid();
   const sessions = Store.getSessions();
   const today = new Date();
   const days = [];
